@@ -11,17 +11,408 @@ datasource db {
 }
 
 model User {
-  id    Int     @default(autoincrement()) @id
-  email String  @unique
-  name  String?
-  posts Post[]
+  id Int @id @default(autoincrement()) 
+  name  String  
+  userStatus String?
+  imageURL String? @db.VarChar(255)
+  last_login DateTime? @db.Timestamptz(6)
+  email String @db.VarChar(255) @unique 
+  password String @db.VarChar(255)
+  createdAt DateTime? @db.Timestamptz(6)
+  updatedAt DateTime? @db.Timestamptz(6)
+  isVerified Boolean @default(false)
+  emailToken String? @db.VarChar(255) 
+  resetToken String? @db.VarChar(255) 
+  deletedAt DateTime? @db.Timestamptz(6)
+  institutes Institute[] 
+  departments Department[] 
+  file File[]
+  instituteReq InstituteRequest[]
+  classParticipants ClassParticipants[] 
+  userRole UserRole[] 
+  userSession UserSession[]
+  classPost ClassPost[]
+  postComments PostComments[]
+  classPoll ClassPoll[]
+  pollComments PollComments[]
+  pollOptionSelection PollOptionSelection[] 
+  Assessment Assessment[]
+  questionResponse QuestionResponse[]
+  classAssessmentComments ClassAssessmentComments[]
+  ClassAttendance ClassAttendance[]
+  attendanceRecord AttendanceRecord[]
+  notifications Notifications[]
+  chatParticipants ChatParticipants[]
+  chatmessage ChatMessage[]
+  }
+
+model UserSession{
+  id Int @id @default(autoincrement()) 
+  user User @relation(fields: [userId],references: [id])
+  userId Int
+  createdAt DateTime @db.Timestamptz(6)
+  ipv4Address String @db.VarChar(15)
+  ipv6Address String @db.VarChar(39)
+  device_model String @db.VarChar(255)
+  browser_version String @db.VarChar(255)
+  browser_family String @db.VarChar(255)
+  os_family String @db.VarChar(255)
+  os_version String @db.VarChar(255)
+  token String @db.VarChar(255)
+  questionResponse QuestionResponse[]
+  attendanceRecord AttendanceRecord[]
 }
 
-model Post {
-  id        Int     @default(autoincrement()) @id
-  title     String
-  content   String?
-  published Boolean @default(false)
-  author    User?   @relation(fields: [authorId], references: [id])
-  authorId  Int?
+model File{
+  id Int @id @default(autoincrement()) 
+  name String @db.VarChar(255)
+  url String
+  createdAt DateTime
+  uploaded User @relation(fields: [uploadedBy],references: [id])
+  uploadedBy Int
+  postAttachments PostAttachments[]
+  questionAttachment QuestionAttachment[]
+  responseAttachment ResponseAttachment[]
+  chatmessage ChatMessage?
+  instituteRequestAttachment InstituteRequestAttachment[]
+}
+
+model Institute {
+  id Int @id @default(autoincrement()) 
+  name  String @db.VarChar(255) @unique
+  admin User @relation(fields: [adminId], references: [id])
+  adminId Int 
+  instituteType String @db.VarChar(255)
+  archivedAt DateTime? @db.Timestamptz(6)
+  deletedAt DateTime? @db.Timestamptz(6) 
+  departments Department[]
+  role Role[]
+}
+
+model Department {
+  id Int @id @default(autoincrement()) 
+  name  String @db.VarChar(255)
+  institute Institute @relation(fields: [instituteId], references: [id])
+  instituteId Int 
+  archivedAt DateTime? @db.Timestamptz(6)
+  deletedAt DateTime? @db.Timestamptz(6) 
+  admin User @relation(fields: [adminId], references: [id])
+  adminId Int
+  class Class[]
+  role Role[]
+}
+
+model InstituteRequest{
+  id Int @id @default(autoincrement()) 
+  name  String @db.VarChar(255)
+  instituteType String @db.VarChar(255)
+  admin User @relation(fields: [adminId], references: [id])
+  adminId Int
+  acceptedAt DateTime? @db.Timestamptz(6)
+  rejectedAt DateTime? @db.Timestamptz(6)
+  instituteRequestAttachment InstituteRequestAttachment[]
+
+}
+model InstituteRequestAttachment{
+  id Int @id @default(autoincrement()) 
+  instituteRequest InstituteRequest @relation(fields: [instituteRequestId], references: [id])
+  instituteRequestId Int
+  file File @relation(fields: [fileId], references: [id])
+  fileId Int
+  deletedAt DateTime? @db.Timestamptz(6)
+}
+
+
+model Class{
+  id Int @id @default(autoincrement()) 
+  name  String @db.VarChar(255)
+  description String 
+  department Department @relation(fields: [departmentId], references: [id])
+  departmentId Int 
+  code String @db.VarChar(255)
+  archivedAt DateTime @db.Timestamptz(6)
+  deletedAt DateTime @db.Timestamptz(6) 
+  classParticipants ClassParticipants[]
+  role Role[]
+  classPost ClassPost[]
+  classPoll ClassPoll[]
+  classAssessment ClassAssessment[]
+  classAttendance ClassAttendance[]
+}
+
+model ClassParticipants{
+  id Int @id @default(autoincrement()) 
+  class Class @relation(fields: [classId], references: [id])
+  classId Int 
+  user User @relation(fields: [userId], references: [id])
+  userId Int 
+}
+
+
+model ClassPost{
+  id Int @id @default(autoincrement()) 
+  class Class @relation(fields: [classId], references: [id])
+  classId Int 
+  user User @relation(fields: [createdBy], references: [id])
+  createdBy Int 
+  createdAt DateTime @db.Timestamptz(6)
+  startingTime DateTime @db.Timestamptz(6)
+  body String
+  deletedAt DateTime
+  postAttachments PostAttachments[]
+  postComments PostComments[]
+}
+
+model PostAttachments{
+  id Int @id @default(autoincrement()) 
+  post ClassPost @relation(fields: [postId], references: [id])
+  postId Int 
+  file File @relation(fields: [fileId], references: [id])
+  fileId Int 
+  deletedAt DateTime
+}
+
+model PostComments{
+  id Int @id @default(autoincrement()) 
+  post ClassPost @relation(fields: [postId], references: [id])
+  postId Int 
+  user User @relation(fields: [userId], references: [id])
+  userId Int 
+  createdAt DateTime @db.Timestamptz(6)
+  body String
+  deletedAt DateTime
+}
+
+model ClassPoll{
+  id Int @id @default(autoincrement()) 
+  user User @relation(fields: [createdBy], references: [id])
+  createdBy Int 
+  startingTime DateTime @db.Timestamptz(6)
+  statment String
+  class Class @relation(fields: [classId], references: [id])
+  classId Int 
+  deletedAt DateTime @db.Timestamptz(6)
+  pollComments PollComments[]
+  pollOptions PollOption[]
+}
+
+model PollComments{
+  id Int @id @default(autoincrement()) 
+  poll ClassPoll @relation(fields: [pollId], references: [id])
+  pollId Int 
+  user User @relation(fields: [userId], references: [id])
+  userId Int 
+  createdAt DateTime @db.Timestamptz(6)
+  body String
+  deletedAt DateTime  @db.Timestamptz(6)
+}
+
+model PollOption{
+  id Int @id @default(autoincrement()) 
+  classPoll ClassPoll @relation(fields: [pollId], references: [id])
+  pollId Int 
+  option String
+  votes Int
+  pollOptionSelection PollOptionSelection[]
+}
+
+model PollOptionSelection{
+  id Int @id @default(autoincrement()) 
+  user User @relation(fields: [userId], references: [id])
+  userId Int 
+  pollOption PollOption @relation(fields: [pollOptionId], references: [id])
+  pollOptionId Int 
+}
+
+model Assessment{
+  id Int @id @default(autoincrement()) 
+  user User @relation(fields: [createdBy], references: [id])
+  createdBy Int
+  createdAt DateTime @db.Timestamptz(6)
+  name  String @db.VarChar(255)
+  body String? 
+  deletedAt DateTime? @db.Timestamptz(6) 
+  isPublic Boolean @default(false)
+  classAssessment ClassAssessment[]
+  question Question[]
+}
+
+model Question{
+  id Int @id @default(autoincrement()) 
+  statment String
+  assessment Assessment @relation(fields: [assessmentId], references: [id])
+  assessmentId Int 
+  questionScore Int
+  duration Int
+  deletedAt DateTime @db.Timestamptz(6)
+  option Option[]
+  questionResponse QuestionResponse[]
+  questionAttachment QuestionAttachment[]
+}
+
+model Option{
+  id Int @id @default(autoincrement()) 
+  question Question @relation(fields: [questionId], references: [id])
+  questionId Int 
+  value String
+  is_correct Boolean
+  deletedAt DateTime @db.Timestamptz(6)
+}
+
+model QuestionResponse{
+  id Int @id @default(autoincrement()) 
+  question Question @relation(fields: [questionId], references: [id])
+  questionId Int 
+  user User @relation(fields: [userId], references: [id])
+  userId Int 
+  userSession UserSession @relation(fields: [userSessionId], references: [id])
+  userSessionId Int
+  classAssessment ClassAssessment @relation(fields: [classAssessmentId], references: [id])
+  classAssessmentId Int
+  obtainedScore Int
+  responseAttachment ResponseAttachment[]
+}
+
+model QuestionAttachment{
+  id Int @id @default(autoincrement()) 
+  question Question @relation(fields: [questionId], references: [id])
+  questionId Int 
+  file File @relation(fields: [fileId], references: [id])
+  fileId Int 
+}
+
+model ResponseAttachment{
+  id Int @id @default(autoincrement()) 
+  questionResponse QuestionResponse @relation(fields: [questionResponseId], references: [id])
+  questionResponseId Int 
+  file File @relation(fields: [fileId], references: [id])
+  fileId Int 
+}
+model ClassAssessment{
+  id Int @id @default(autoincrement()) 
+  class Class @relation(fields: [classId], references: [id])
+  classId Int 
+  assessment Assessment @relation(fields: [assessmentId], references: [id])
+  assessmentId Int 
+  deletedAt DateTime @db.Timestamptz(6)
+  allowResubmission Boolean
+  startingTime DateTime @db.Timestamptz(6)
+  isMultiTimer Boolean
+  QuestionsToDisplay Int
+  questionResponse QuestionResponse[]
+  assessmentComments ClassAssessmentComments[]
+}
+
+model ClassAssessmentComments{
+  id Int @id @default(autoincrement()) 
+  classAssessment ClassAssessment @relation(fields: [assessmentId], references: [id])
+  assessmentId Int 
+  user User @relation(fields: [userId], references: [id])
+  userId Int 
+  createdAt DateTime @db.Timestamptz(6)
+  body String
+  deletedAt DateTime @db.Timestamptz(6)
+}
+
+model ClassAttendance{
+  id Int @id @default(autoincrement()) 
+  class Class @relation(fields: [classId], references: [id])
+  classId Int 
+  user User @relation(fields: [createdBy], references: [id])
+  createdBy Int 
+  createdAt DateTime @db.Timestamptz(6)
+  startingTime DateTime @db.Timestamptz(6)
+  endingTime DateTime @db.Timestamptz(6) 
+  deletedAt DateTime @db.Timestamptz(6)
+  attendanceRecord AttendanceRecord[]
+}
+
+model AttendanceRecord{
+  id Int @id @default(autoincrement()) 
+  classAttendance ClassAttendance @relation(fields: [classAttendanceId], references: [id])
+  classAttendanceId Int 
+  user User @relation(fields: [userId], references: [id])
+  userId Int 
+  isPresent Boolean
+  userSession UserSession @relation(fields: [userSessionId], references: [id])
+  userSessionId Int
+}
+
+model Chat{
+  id Int @id @default(autoincrement())
+  createdAt DateTime @db.Timestamptz(6)
+  archivedAt DateTime @db.Timestamptz(6)
+  deletedAt DateTime @db.Timestamptz(6)  
+  chatParticipants ChatParticipants[]
+  chatmessage ChatMessage[]
+}
+
+model ChatParticipants{
+  id Int @id @default(autoincrement())
+  chat Chat @relation(fields: [chatId], references: [id])
+  chatId Int
+  user User @relation(fields: [participantId], references: [id])
+  participantId Int
+  removedAt DateTime @db.Timestamptz(6)
+}
+
+model ChatMessage{
+  id Int @id @default(autoincrement())
+  chat Chat @relation(fields: [chatId], references: [id])
+  chatId Int
+  user User @relation(fields: [senderId], references: [id])
+  senderId Int
+  body String
+  timeSent DateTime @db.Timestamptz(6)
+  deletedAt DateTime @db.Timestamptz(6)
+  file File? @relation(fields: [fileId], references: [id])
+  fileId Int?
+}
+
+model Notifications{
+  id Int @id @default(autoincrement()) 
+  user User @relation(fields: [userId], references: [id])
+  userId Int 
+  body String
+  time_sent DateTime @db.Timestamptz(6)
+  is_read Boolean
+}
+
+// FOLLOWING MODELS ARE FOR OBJECT LEVEL ROLE BASES ACCESS CONTROL (Object Level RBAC)
+
+model Role{
+  id Int @id @default(autoincrement()) 
+  name  String @db.VarChar(255)
+  class Class? @relation(fields: [classId], references: [id])
+  classId Int?
+  department Department? @relation(fields: [departmentId], references: [id])
+  departmentId Int?
+  institute Institute? @relation(fields: [instituteId], references: [id])
+  instituteId Int?
+  rolePermission RolePermission[]
+  userRole UserRole[]
+
+}
+
+model Permission{
+  id Int @id @default(autoincrement()) 
+  name  String @db.VarChar(255)
+  code String @db.VarChar(255)
+  rolePermission RolePermission[]
+}
+
+model RolePermission{
+  id Int @id @default(autoincrement()) 
+  role Role @relation(fields: [roleId], references: [id])
+  roleId Int 
+  permission Permission @relation(fields: [permissionId], references: [id])
+  permissionId Int 
+}
+
+model UserRole{
+  id Int @id @default(autoincrement()) 
+  user User @relation(fields: [userId], references: [id])
+  userId Int 
+  role Role @relation(fields: [roleId], references: [id])
+  roleId Int 
 }
