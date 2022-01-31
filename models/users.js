@@ -9,8 +9,19 @@ const userModelSignup = Joi.object(
     }
 );
 
+const userModelLogin = Joi.object(
+    {
+        email: Joi.string().email().required(),
+        password :Joi.string().min(3).required(),
+    }
+);
+
 function validateUserSignup(data){
     return userModelSignup.validate(data,{abortEarly:false});
+}
+
+function validateUserLogin(data){
+    return userModelLogin.validate(data,{abortEarly:false});
 }
 
 async function encryptPassword(password){
@@ -19,5 +30,11 @@ async function encryptPassword(password){
     return hashedPassword;
 }
 
+async function verifyPassword(password,hashedPassword){
+    return await bcrypt.compare(password,hashedPassword)
+}
+
 module.exports.validateUserSignup = validateUserSignup;
 module.exports.encryptPassword = encryptPassword;
+module.exports.validateUserLogin = validateUserLogin;
+module.exports.verifyPassword = verifyPassword;

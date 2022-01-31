@@ -1,0 +1,4 @@
+-- AlterTable
+ALTER TABLE "UserSession" ADD COLUMN     "userAgent" TEXT,
+ALTER COLUMN "ipv4Address" SET DATA TYPE VARCHAR(40),
+ALTER COLUMN "ipv6Address" SET DATA TYPE VARCHAR(40);
