@@ -398,7 +398,7 @@ model Role{
 model Permission{
   id Int @id @default(autoincrement()) 
   name  String @db.VarChar(255)
-  code String @db.VarChar(255)
+  code String @db.VarChar(255) @unique
   rolePermission RolePermission[]
 }
 
@@ -415,5 +415,6 @@ model UserRole{
   user User @relation(fields: [userId], references: [id])
   userId Int 
   role Role @relation(fields: [roleId], references: [id])
-  roleId Int 
+  roleId Int
+  @@unique([roleId, userId])
 }
