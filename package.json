@@ -3,7 +3,8 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "start": "node ./bin/www"
+    "start": "node ./bin/www",
+    "start:dev": "nodemon ./bin/www"
   },
   "dependencies": {
     "@prisma/client": "^3.7.0",
@@ -21,6 +22,7 @@
     "ua-parser-js": "^1.0.2"
   },
   "devDependencies": {
-    "prisma": "^3.7.0"
+    "prisma": "^3.7.0",
+    "kill-port": "^1.6.1"
   }
 }
