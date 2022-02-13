@@ -1,6 +1,5 @@
 const Joi = require('joi');
 const bcrypt = require('bcrypt');
-
 const userModelSignup = Joi.object(
     {
         name:Joi.string().min(3).max(20).required(),

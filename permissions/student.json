@@ -1,0 +1,36 @@
+{
+    "permissions": [
+        {
+            "name":"can add assessment to user lib",
+            "code":"31"
+        },
+        {
+            "name":"can attempt poll",
+            "code":"32"
+        },
+        {
+            "name":"can attempt assessment",
+            "code":"33"
+        },
+        {
+            "name":"can add comment",
+            "code":"34"
+        },
+        {
+            "name":"can remove comment",
+            "code":"35"
+        },
+        {
+            "name":"can send/receive message",
+            "code":"36"
+        },
+        {
+            "name":"can view attendance",
+            "code":"37"
+        },
+        {
+            "name":"can create a new class",
+            "code":"16"
+        }
+    ]
+}

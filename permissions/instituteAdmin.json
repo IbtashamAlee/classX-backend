@@ -1,0 +1,40 @@
+{
+  "permissions": [
+    {
+      "name":"can add institute admin",
+      "code":"06"
+    },
+    {
+      "name":"can add department admin",
+      "code":"07"
+    },
+    {
+      "name":"can add class admin",
+      "code":"08"
+    },
+    {
+      "name":"can edit department admin role",
+      "code":"10"
+    },
+    {
+      "name":"can edit class admin role",
+      "code":"10"
+    },
+    {
+      "name":"can add department in institute",
+      "code":"14"
+    },
+    {
+      "name":"can create a new class",
+      "code":"16"
+    },
+    {
+      "name":"can add assessment to user library",
+      "code":"31"
+    },
+    {
+      "name":"can send/receive messages",
+      "code":"36"
+    }
+  ]
+}

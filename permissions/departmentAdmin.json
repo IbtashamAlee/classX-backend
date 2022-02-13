@@ -1,0 +1,105 @@
+{
+  "permissions": [
+    {
+      "name":"can add class Admin/Teacher",
+      "code":"08"
+    },
+    {
+      "name":"can edit student's roll",
+      "code":"13"
+    },
+    {
+      "name":"can create a new class in department",
+      "code":"15"
+    },
+    {
+      "name":"can create a new class",
+      "code":"16"
+    },
+    {
+      "name":"can add class participants",
+      "code":"17"
+    },
+    {
+      "name":"can remove class participants",
+      "code":"18"
+    },
+    {
+      "name":"can add a post in class",
+      "code":"19"
+    },
+    {
+      "name":"can update a post in class",
+      "code":"20"
+    },
+    {
+      "name":"can delete a post in class",
+      "code":"21"
+    },
+    {
+      "name":"can add a poll in class",
+      "code":"22"
+    },
+    {
+      "name":"can update a poll in class",
+      "code":"23"
+    },
+    {
+      "name":"can delete a poll in class",
+      "code":"24"
+    },
+    {
+      "name":"can add attendance in class",
+      "code":"25"
+    },
+    {
+      "name":"can update attendance in class",
+      "code":"26"
+    },
+    {
+      "name":"can delete attendance in class",
+      "code":"27"
+    },
+    {
+      "name":"can assign assessment in class",
+      "code":"28"
+    },
+    {
+      "name":"can update assessment in class",
+      "code":"29"
+    },
+    {
+      "name":"can delete assessment in class",
+      "code":"30"
+    },
+    {
+      "name":"can add assessment to user's library",
+      "code":"31"
+    },
+    {
+      "name":"can attempt poll",
+      "code":"32"
+    },
+    {
+      "name":"can comment",
+      "code":"34"
+    },
+    {
+      "name":"can rmeove comments (personal)",
+      "code":"35"
+    },
+    {
+      "name":"can send/receive messages",
+      "code":"36"
+    },
+    {
+      "name":"can view class attendance",
+      "code":"38"
+    },
+    {
+      "name":"can view department attendance",
+      "code":"39"
+    },
+    }
+  ]
+}
