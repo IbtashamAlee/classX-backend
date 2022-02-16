@@ -8,7 +8,6 @@ async function verifyUser(req, res, next) {
     if (!token)
         return res.status(400).send("Token not provided");
         const user = jwt.verify(token, process.env.JWT_SECRET);
-        console.log(user);
         if (!user)
             return res.status(403).send("invalid token");
         const dbUser = await prisma.user.findUnique({

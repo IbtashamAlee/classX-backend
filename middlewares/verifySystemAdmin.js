@@ -27,7 +27,6 @@ async function verifySystemAdmin(req, res, next) {
                 roleId: role[0].id
             }
         })
-        console.log(userRole.length)
         if(userRole.length > 0)
             next();
         else
