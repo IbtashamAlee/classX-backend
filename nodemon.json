@@ -1,0 +1,9 @@
+{
+  "env":{
+    "PORT": 4000,
+    "AWS_ACCESS_KEY_ID": "blaablaablaa234bla",
+    "AWS_SECRET_KEY": "bla123bla123blablablaa/blaba+blabla",
+    "AWS_BUCKET_NAME": "gallerybucket33",
+    "AWS_REGION": "eu-central-1"
+  }
+}
