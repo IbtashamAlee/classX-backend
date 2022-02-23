@@ -5,12 +5,12 @@ const prisma = new PrismaClient();
 
 router.get('/',async(req,res)=>{
     const institutes = await prisma.institute.findMany();
-    return res.status(200).json(institutes);
+    res.json(institutes);
 })
 
 router.get('/requests',async(req,res)=>{
     const requests = await prisma.instituteRequest.findMany();
-    return res.status(200).json(requests);
+    res.json(requests);
 })
 
 module.exports = router;

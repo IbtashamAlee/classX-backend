@@ -15,6 +15,7 @@ require("dotenv").config();
 async function sendVerification(name, email, token) {
     const apiKey = `${process.env.SENDGRID_API_KEY}`;
     sgMail.setApiKey(apiKey);
+    apiKey
     const msg = {
         to: email, // User's mail address
         from: "faseehahmad00@gmail.com", //Verified SendGrid Mail Address
@@ -32,7 +33,7 @@ async function sendVerification(name, email, token) {
         });
 }
 
-//This is route for user signup, and it validates the user data
+//This is route for user signup and it validates the user data
 router.post(`/signup`, signupValidation, async (req, res) => {
     let pass = await encryptPassword(req.body.password);
     let EmailVerificationCode = randomstring.generate(64);
@@ -48,22 +49,22 @@ router.post(`/signup`, signupValidation, async (req, res) => {
         });
         await sendVerification(req.body.name, req.body.email, EmailVerificationCode)
             .then(() => {
-                return res.status(200).send(result);
+                return res.send(result);
             });
     } catch (e) {
-        return res.status(409).send(e);
+        return res.send(e);
     }
 });
 
 //This route processes user request for email verification
-router.get("/verify-mail/:id", async (req, res) => {
+router.get("/verifymail/:id", async (req, res) => {
     const {id} = req.params;
     try {
-        const temp = id.split("=");
-        const token = temp[0];
-        const mail = temp[1];
+        const myarray = id.split("=");
+        const token = myarray[0];
+        const mail = myarray[1];
         console.log("mail is " + mail);
-        const result = await prisma.user.findUnique({
+        result = await prisma.user.findUnique({
             where: {
                 email: mail,
             },
@@ -77,9 +78,9 @@ router.get("/verify-mail/:id", async (req, res) => {
                 },
             });
         }
-        return res.status(200).send("Email Verified Successfully. Continue to login");
+        return res.send("Email Verified Successfully. Continue to login");
     } catch (e) {
-        return res.status(403).send("Unable to Verify .Please Try Again");
+        return res.send("Unable to Verify .Please Try Again");
     }
 });
 
@@ -98,13 +99,13 @@ router.post(`/login`, loginValidation, async (req, res) => {
                             if (user.isVerified) {
                                 //IF user exists , password matches and user is verified then proceed to login
                                 //generating jwt
-                                const jwt_token = jwt.sign({id: user.id, email: user.email}, process.env.JWT_SECRET);
+                                jwt_token = jwt.sign({id: user.id, email: user.email}, process.env.JWT_SECRET);
                                 //parsing user agent header for digital finger print
-                                const myParser = new parser();
-                                myParser.setUA(req.headers["user-agent"]);
-                                const result = myParser.getResult();
+                                const myparser = new parser();
+                                myparser.setUA(req.headers["user-agent"]);
+                                const result = myparser.getResult();
                                 //generating random session token
-                                const sessionToken = randomstring.generate(240);
+                                sessionToken = randomstring.generate(255);
                                 //generating user session
                                 prisma.userSession.create({
                                     data: {
@@ -119,20 +120,21 @@ router.post(`/login`, loginValidation, async (req, res) => {
                                         browser_family: result.browser.name || "unknown",
                                         os_family: result.os.name || "unknown",
                                         os_version: result.os.version || "unknown",
-                                        token: sessionToken + user.id,
+                                        token: sessionToken,
                                     }
-                                }).then(({sessionToken}) => {
-                                    return res.status(200).send({jwt_token, sessionToken});
+                                }).then(({sessionToken: token}) => {
+                                    return res.send({jwt_token, sessionToken});
                                 })
                             } else {
-                                return res.status(401).send("USER MAIL IS NOT VERIFIED . PLEASE VERIFY YOUR EMAIL TO LOGIN");
+                                return res.send("USER MAIL IS NOT VERIFIED . PLEASE VERIFY YOUR EMAIL TO LOGIN");
                             }
                         } else {
-                            return res.status(403).send("Password is incorrect");
+                            return res.send("Password is incorrect");
                         }
                     });
             } else {
-                return res.status(404).send("user not found");
+                console.log("user not found");
+                return res.send("user not found");
             }
         });
     } catch (e) {
@@ -143,7 +145,7 @@ router.post(`/login`, loginValidation, async (req, res) => {
 
 router.post("/sendemailverification", async (req, res) => {
     const mail = req.body.email;
-    const result = await prisma.user.findUnique({
+    result = await prisma.user.findUnique({
         where: {
             email: mail,
         },
@@ -155,8 +157,8 @@ router.post("/sendemailverification", async (req, res) => {
                 if (status) {
                     if (result.isVerified) return res.send("User is already Verified"); else {
                         sendVerification(result.name, result.email, result.emailToken)
-                            .then(() => {
-                                return res.status(200).send("Verification Email sent");
+                            .then(emailStatus => {
+                                return res.send("Verification Email sent");
                             });
                     }
                 } else return res.status(401).send("Not Authorized");
@@ -184,7 +186,7 @@ router.post('/makeAdmin',verifySystemAdmin,async(req,res)=>{
                         roleId: role[0].id
                     }
                 })
-                res.status(200).send({resp: "admin privileges created for user", userRole});
+                res.status(200).send({resp: "admin previleges created for user", userRole});
             } else
                 res.status(404).send("User not found");
         } else
@@ -192,9 +194,9 @@ router.post('/makeAdmin',verifySystemAdmin,async(req,res)=>{
     }
     catch (e){
         if(e.code === 'P2002'){
-            return res.status(409).send("Role Already Exists");
+            return res.send("Role Already Exists");
         }
-        return res.status(500).send("An error occurred");
+        return res.status(500).send("An error occured");
     }
     });
 
