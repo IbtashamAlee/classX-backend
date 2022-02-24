@@ -6,7 +6,6 @@ const {encryptPassword, verifyPassword} = require("../models/users");
 const {verifySystemAdmin} = require("../middlewares/verifySystemAdmin");
 const {PrismaClient} = require(".prisma/client");
 const randomstring = require("randomstring");
-const jwt = require('jsonwebtoken');
 const parser = require("ua-parser-js");
 const prisma = new PrismaClient();
 require("dotenv").config();
@@ -97,8 +96,6 @@ router.post(`/login`, loginValidation, async (req, res) => {
                         if (result) {
                             if (user.isVerified) {
                                 //IF user exists , password matches and user is verified then proceed to login
-                                //generating jwt
-                                const jwt_token = jwt.sign({id: user.id, email: user.email}, process.env.JWT_SECRET);
                                 //parsing user agent header for digital finger print
                                 const myParser = new parser();
                                 myParser.setUA(req.headers["user-agent"]);
@@ -121,8 +118,8 @@ router.post(`/login`, loginValidation, async (req, res) => {
                                         os_version: result.os.version || "unknown",
                                         token: sessionToken + user.id,
                                     }
-                                }).then(({sessionToken}) => {
-                                    return res.status(200).send({jwt_token, sessionToken});
+                                }).then(({token}) => {
+                                    return res.status(200).send({access_token:token});
                                 })
                             } else {
                                 return res.status(401).send("USER MAIL IS NOT VERIFIED . PLEASE VERIFY YOUR EMAIL TO LOGIN");
@@ -140,7 +137,7 @@ router.post(`/login`, loginValidation, async (req, res) => {
     }
 })
 
-
+// manually resend verification to registered user
 router.post("/sendemailverification", async (req, res) => {
     const mail = req.body.email;
     const result = await prisma.user.findUnique({

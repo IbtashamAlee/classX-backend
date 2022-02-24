@@ -1,31 +1,21 @@
-const jwt = require("jsonwebtoken");
 const {PrismaClient} = require("@prisma/client");
 const prisma = new PrismaClient();
 
 async function verifySystemAdmin(req, res, next) {
-    try {
-        const user = req.user;
-        const role = await prisma.role.findMany({
-            where: {
-                name: "SystemAdmin",
-            },
-        });
-        const dbUser = await prisma.user.findUnique({
-            where: {
-                id: user.id,
-            }, include: {
-                userRole: {
-                    where: {
-                        userId: user.id, roleId: role[0].id,
-                    },
-                },
-            },
-        });
-
-        return dbUser.userRole.length > 0 ? next() : res.status(401).send("not authorized");
-    } catch (e) {
-        return res.status(401).send("not authorized");
+    const user = req.user;
+    const role = await prisma.role.findMany({
+        where: {
+            name: "SystemAdmin",
+        }
+    });
+    if(role.length > 0){
+        const verifiedRole  = user.userRole.filter(t => {
+            return t.roleId === role[0].id
+        })
+        verifiedRole.length > 0 ? next() : res.status(401).send("unauthorized")
     }
+    else
+        return res.status(404).send("Admin Role does not exist.")
 }
 
 module.exports.verifySystemAdmin = verifySystemAdmin;
