@@ -7,6 +7,7 @@ const {verifySystemAdmin} = require("../middlewares/verifySystemAdmin");
 const {PrismaClient} = require(".prisma/client");
 const randomstring = require("randomstring");
 const parser = require("ua-parser-js");
+const {verifyUser} = require("../middlewares/verifyUser");
 const prisma = new PrismaClient();
 require("dotenv").config();
 
@@ -110,8 +111,7 @@ router.post(`/login`, loginValidation, async (req, res) => {
                                         userAgent: result.ua || "unknown",
                                         ipv4Address: req.headers["x-forwarded-for"] || req.socket.remoteAddress,
                                         ipv6Address: req.headers["x-forwarded-for"] || req.socket.remoteAddress,
-                                        device_model: result.device.type + "-" + result.device.vendor + "-"
-                                                        + result.device.model || "unknown",
+                                        device_model: result.device.type + "-" + result.device.vendor + "-" + result.device.model || "unknown",
                                         browser_version: result.browser.version || "unknown",
                                         browser_family: result.browser.name || "unknown",
                                         os_family: result.os.name || "unknown",
@@ -119,7 +119,7 @@ router.post(`/login`, loginValidation, async (req, res) => {
                                         token: sessionToken + user.id,
                                     }
                                 }).then(({token}) => {
-                                    return res.status(200).send({access_token:token});
+                                    return res.status(200).send({access_token: token});
                                 })
                             } else {
                                 return res.status(401).send("USER MAIL IS NOT VERIFIED . PLEASE VERIFY YOUR EMAIL TO LOGIN");
@@ -161,7 +161,7 @@ router.post("/sendemailverification", async (req, res) => {
     } else return res.status(404).send("User not Found");
 });
 
-router.post('/makeAdmin',verifySystemAdmin,async(req,res)=>{
+router.post('/makeAdmin', verifySystemAdmin, async (req, res) => {
     try {
         if (req.body.email) {
             const user = await prisma.user.findUnique({
@@ -177,23 +177,33 @@ router.post('/makeAdmin',verifySystemAdmin,async(req,res)=>{
                 });
                 const userRole = await prisma.userRole.create({
                     data: {
-                        userId: user.id,
-                        roleId: role[0].id
+                        userId: user.id, roleId: role[0].id
                     }
                 })
                 res.status(200).send({resp: "admin privileges created for user", userRole});
-            } else
-                res.status(404).send("User not found");
-        } else
-            return res.status(401).send("email not provided");
-    }
-    catch (e){
-        if(e.code === 'P2002'){
+            } else res.status(404).send("User not found");
+        } else return res.status(401).send("email not provided");
+    } catch (e) {
+        if (e.code === 'P2002') {
             return res.status(409).send("Role Already Exists");
         }
         return res.status(500).send("An error occurred");
     }
-    });
+});
+
+
+router.put("/logout", verifyUser, async (req, res) => {
+    // return res.json(req.session)
+    await prisma.userSession.update({
+        where: {
+            id: req.session
+        }, data: {
+            token: ''
+        }
+    }).then(() => {
+        return res.send("user logged out successfully");
+    })
+})
 
 
 module.exports = router;
