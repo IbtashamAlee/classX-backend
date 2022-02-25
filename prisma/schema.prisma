@@ -59,7 +59,7 @@ model UserSession{
   browser_family String @db.VarChar(255)
   os_family String @db.VarChar(255)
   os_version String @db.VarChar(255)
-  token String @db.VarChar(255) @unique
+  token String? @db.VarChar(255) @unique
   questionResponse QuestionResponse[]
   attendanceRecord AttendanceRecord[]
 }

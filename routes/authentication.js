@@ -191,19 +191,29 @@ router.post('/makeAdmin', verifySystemAdmin, async (req, res) => {
     }
 });
 
-
+//if session id is priovided then it will expire provided session Otherwise current session would be logged out
 router.put("/logout", verifyUser, async (req, res) => {
-    // return res.json(req.session)
     await prisma.userSession.update({
         where: {
-            id: req.session
+            id: req.body.sessionId? req.body.sessionId : req.session
         }, data: {
-            token: ''
+            token: null
         }
-    }).then(() => {
-        return res.send("user logged out successfully");
+    }).then((e) => {
+        return res.send(e);
     })
 })
 
+router.get("/sessions",verifyUser,async (req, res)=>{
+    let sessions = await prisma.userSession.findMany({
+        where:{
+            userId : req.user.id,
+        },
+    })
+    sessions = sessions.filter(s => {
+        return s.token !== null
+    })
+    res.json(sessions);
+})
 
 module.exports = router;
