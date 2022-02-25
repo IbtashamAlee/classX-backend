@@ -46,7 +46,7 @@ router.post(`/signup`, signupValidation, async (req, res) => {
                 emailToken: EmailVerificationCode,
             },
         });
-        await sendVerification(req.body.name, req.body.email, EmailVerificationCode)
+        sendVerification(req.body.name, req.body.email, EmailVerificationCode)
             .then(() => {
                 return res.status(200).send(result);
             });
