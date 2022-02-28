@@ -4,6 +4,7 @@ const {PrismaClient} = require(".prisma/client");
 const prisma = new PrismaClient();
 const {verifyUser} = require('../middlewares/verifyUser');
 const {verifySystemAdmin} = require('../middlewares/verifySystemAdmin');
+const {verifyInstituteAdmin} = require('../middlewares/verifyInstituteAdmin')
 const {permissions} = require('../permissions/instituteAdmin.json');
 
 router.get('/', verifyUser, verifySystemAdmin, async (req, res) => {
@@ -78,6 +79,13 @@ router.put('/restore/:id',verifyUser,verifySystemAdmin,async(req,res)=>{
     res.send(institute);
 })
 
+router.post('/:id/add-department',verifyUser,verifyInstituteAdmin,async(req,res)=>{
+    // const department = await prisma.department.create({
+    //
+    // })
+    res.send(req.params.id)
+
+})
 /*This function created an institute after accepting request
 * It adds a role and exlplicit permissions to database
 * The admin user is assigned the newly created role
