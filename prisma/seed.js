@@ -34,28 +34,28 @@ async function createSystemAdminRole(){
 
 }
 
-// async function makeSystemAdmin(email){
-//     const user  = await prisma.user.findUnique({
-//         where:{
-//             email:email
-//         }
-//     })
-//     if(user){
-//         const role = await prisma.role.findMany({
-//             where:{
-//                 name:"SystemAdmin"
-//             }
-//         });
-//         const userRole = await prisma.userRole.create({
-//             data:{
-//                 userId:user.id,
-//                 roleId:role[0].id
-//             }
-//         })
-//     }
-//     else
-//         console.log("User not found");
-// }
+async function makeSystemAdmin(email){
+    const user  = await prisma.user.findUnique({
+        where:{
+            email:email
+        }
+    })
+    if(user){
+        const role = await prisma.role.findMany({
+            where:{
+                name:"SystemAdmin"
+            }
+        });
+        const userRole = await prisma.userRole.create({
+            data:{
+                userId:user.id,
+                roleId:role[0].id
+            }
+        })
+    }
+    else
+        console.log("User not found");
+}
 
 
 createSystemAdminRole().then(()=>{

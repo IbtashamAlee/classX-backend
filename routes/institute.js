@@ -4,6 +4,7 @@ const {PrismaClient} = require(".prisma/client");
 const prisma = new PrismaClient();
 const {verifyUser} = require('../middlewares/verifyUser');
 const {verifySystemAdmin} = require('../middlewares/verifySystemAdmin');
+const {permissions} = require('../permissions/instituteAdmin.json');
 
 router.get('/',verifyUser,verifySystemAdmin,async(req,res)=>{
     const institutes = await prisma.institute.findMany();
@@ -44,10 +45,56 @@ router.put('/request/process/:id',verifyUser,verifySystemAdmin,async(req,res)=>{
             rejectedAt : req.query.method === 'reject' ? new Date() : null
         }
     })
-    res.json(request)
+    if(req.query.method === 'accept')
+        var institute = await createInstitute(result)
+    return institute ? res.json({request,institute,message:"institute and explicit permissions created"}) : res.json(request)
 })
 
-//todo : write accept request function that includes explicit permissions for admins.
-
+/*This function created an institute after accepting request
+* It adds a role and exlplicit permissions to database
+* The admin user is assigned the newly created role
+*/
+async function createInstitute(request){
+    const institute =  await prisma.institute.create({
+        data: {
+            name: request.name,
+            adminId: request.adminId,
+            instituteType: request.instituteType,
+        }
+    });
+    const role = await prisma.role.create({
+        data:{
+            name : 'Institute Admin'+'_'+institute.id,
+            instituteId: institute.id,
+        }
+    })
+    permissions.map(async per => {
+        const permission = await prisma.permission.upsert({
+                where: {
+                    code : per.code+'_'+institute.id
+                },
+                update: {},
+                create: {
+                    name: per.name+'_'+institute.id,
+                    code: per.code+'_'+institute.id,
+                },
+            })
+        const rolePermission = await prisma.rolePermission.create({
+            data:{
+                permissionId:permission.id,
+                roleId : role.id
+            }
+        })
+        console.log(rolePermission);
+    });
+    const userRole = await prisma.userRole.create({
+        data:{
+            userId:request.adminId,
+            roleId:role.id
+        }
+    })
+    console.log(userRole);
+    return institute;
+}
 
 module.exports = router;
