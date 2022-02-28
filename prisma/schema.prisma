@@ -84,7 +84,6 @@ model Institute {
   admin User @relation(fields: [adminId], references: [id])
   adminId Int
   instituteType String @db.VarChar(255)
-  archivedAt DateTime? @db.Timestamptz(6)
   deletedAt DateTime? @db.Timestamptz(6)
   departments Department[]
   role Role[]
@@ -95,7 +94,6 @@ model Department {
   name  String @db.VarChar(255)
   institute Institute @relation(fields: [instituteId], references: [id])
   instituteId Int
-  archivedAt DateTime? @db.Timestamptz(6)
   deletedAt DateTime? @db.Timestamptz(6)
   admin User @relation(fields: [adminId], references: [id])
   adminId Int
@@ -131,7 +129,6 @@ model Class{
   department Department @relation(fields: [departmentId], references: [id])
   departmentId Int
   code String @db.VarChar(255)
-  archivedAt DateTime @db.Timestamptz(6)
   deletedAt DateTime @db.Timestamptz(6)
   classParticipants ClassParticipants[]
   role Role[]
@@ -342,7 +339,6 @@ model AttendanceRecord{
 model Chat{
   id Int @id @default(autoincrement())
   createdAt DateTime @db.Timestamptz(6)
-  archivedAt DateTime @db.Timestamptz(6)
   deletedAt DateTime @db.Timestamptz(6)
   chatParticipants ChatParticipants[]
   chatmessage ChatMessage[]

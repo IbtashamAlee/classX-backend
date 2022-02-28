@@ -79,21 +79,19 @@ async function createInstitute(request){
                     code: per.code+'_'+institute.id,
                 },
             })
-        const rolePermission = await prisma.rolePermission.create({
+            await prisma.rolePermission.create({
             data:{
                 permissionId:permission.id,
                 roleId : role.id
             }
         })
-        console.log(rolePermission);
     });
-    const userRole = await prisma.userRole.create({
+    await prisma.userRole.create({
         data:{
             userId:request.adminId,
             roleId:role.id
         }
     })
-    console.log(userRole);
     return institute;
 }
 
