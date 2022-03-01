@@ -95,8 +95,8 @@ model Department {
   institute Institute @relation(fields: [instituteId], references: [id])
   instituteId Int
   deletedAt DateTime? @db.Timestamptz(6)
-  admin User @relation(fields: [adminId], references: [id])
-  adminId Int
+  admin User? @relation(fields: [adminId], references: [id])
+  adminId Int?
   class Class[]
   role Role[]
 }

@@ -11,7 +11,15 @@ async function verifyUser(req, res, next) {
         include: {
             user: {
                 include: {
-                    userRole: true
+                    userRole: {
+                        include:{
+                            role : {
+                                include:{
+                                    rolePermission: true
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -21,6 +29,7 @@ async function verifyUser(req, res, next) {
         req.user = session.user
         req.session = session.id;
         return next();
+
     }
     else
         return res.status(404).send("user not found");

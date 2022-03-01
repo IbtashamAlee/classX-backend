@@ -2,7 +2,7 @@ const {PrismaClient} = require("@prisma/client");
 const prisma = new PrismaClient();
 
 async function verifyInstituteAdmin(req, res, next) {
-    if (!req.params.id) return res.status(400).send("can read institute id");
+    if (!req.params.id) return res.status(400).send("can not read institute id");
     const institute = await prisma.institute.findUnique({
         where: {
             id: parseInt(req.params.id)

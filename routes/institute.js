@@ -6,6 +6,8 @@ const {verifyUser} = require('../middlewares/verifyUser');
 const {verifySystemAdmin} = require('../middlewares/verifySystemAdmin');
 const {verifyInstituteAdmin} = require('../middlewares/verifyInstituteAdmin')
 const {permissions} = require('../permissions/instituteAdmin.json');
+const {checkPermission} = require('../functions/checkPermission');
+const {check} = require("prisma");
 
 router.get('/', verifyUser, verifySystemAdmin, async (req, res) => {
     const institutes = await prisma.institute.findMany();
@@ -79,13 +81,19 @@ router.put('/restore/:id',verifyUser,verifySystemAdmin,async(req,res)=>{
     res.send(institute);
 })
 
-router.post('/:id/add-department',verifyUser,verifyInstituteAdmin,async(req,res)=>{
-    // const department = await prisma.department.create({
-    //
-    // })
-    res.send(req.params.id)
-
+router.post('/:id/add-department',verifyUser,async(req,res)=>{
+    console.log(req.body.name , req.params.id)
+    const isPermitted = await checkPermission(req.user,'14_'+req.params.id);
+    if(!isPermitted) return res.status(401).send("not permitted to perform this task");
+    const department = await prisma.department.create({
+        data:{
+            name:req.body.name,
+            instituteId: parseInt(req.params.id)
+        },
+    });
+    return res.send(department)
 })
+
 /*This function created an institute after accepting request
 * It adds a role and exlplicit permissions to database
 * The admin user is assigned the newly created role
