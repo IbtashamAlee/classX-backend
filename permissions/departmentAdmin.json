@@ -2,104 +2,113 @@
   "permissions": [
     {
       "name":"can add class Admin/Teacher",
-      "code":"08"
+      "code":"08",
+      "status": "class"
     },
     {
-      "name":"can edit student's roll",
-      "code":"13"
+      "name":"can edit teacher's roll in class",
+      "code":"12",
+      "status": "class"
+    },
+    {
+      "name":"can edit student's roll in class",
+      "code":"13",
+      "status": "class"
     },
     {
       "name":"can create a new class in department",
-      "code":"15"
-    },
-    {
-      "name":"can create a new class",
-      "code":"16"
+      "code":"15",
+      "status": "general"
     },
     {
       "name":"can add class participants",
-      "code":"17"
+      "code":"17",
+      "status": "class"
     },
     {
       "name":"can remove class participants",
-      "code":"18"
+      "code":"18",
+      "status": "class"
     },
     {
       "name":"can add a post in class",
-      "code":"19"
+      "code":"19",
+      "status": "class"
     },
     {
       "name":"can update a post in class",
-      "code":"20"
+      "code":"20",
+      "status": "class"
     },
     {
       "name":"can delete a post in class",
-      "code":"21"
+      "code":"21",
+      "status": "class"
     },
     {
       "name":"can add a poll in class",
-      "code":"22"
+      "code":"22",
+      "status": "class"
     },
     {
       "name":"can update a poll in class",
-      "code":"23"
+      "code":"23",
+      "status": "class"
     },
     {
       "name":"can delete a poll in class",
-      "code":"24"
+      "code":"24",
+      "status": "class"
     },
     {
       "name":"can add attendance in class",
-      "code":"25"
+      "code":"25",
+      "status": "class"
     },
     {
       "name":"can update attendance in class",
-      "code":"26"
+      "code":"26",
+      "status": "class"
     },
     {
       "name":"can delete attendance in class",
-      "code":"27"
+      "code":"27",
+      "status": "class"
     },
     {
       "name":"can assign assessment in class",
-      "code":"28"
+      "code":"28",
+      "status": "class"
     },
     {
       "name":"can update assessment in class",
-      "code":"29"
+      "code":"29",
+      "status": "class"
     },
     {
       "name":"can delete assessment in class",
-      "code":"30"
-    },
-    {
-      "name":"can add assessment to user's library",
-      "code":"31"
+      "code":"30",
+      "status": "class"
     },
     {
       "name":"can attempt poll",
-      "code":"32"
+      "code":"32",
+      "status": "class"
     },
     {
       "name":"can comment",
-      "code":"34"
+      "code":"34",
+      "status": "class"
     },
     {
-      "name":"can rmeove comments (personal)",
-      "code":"35"
-    },
-    {
-      "name":"can send/receive messages",
-      "code":"36"
+      "name":"can remove comments (personal)",
+      "code":"35",
+      "status": "class"
     },
     {
       "name":"can view class attendance",
-      "code":"38"
-    },
-    {
-      "name":"can view department attendance",
-      "code":"39"
-    },
+      "code":"38",
+      "status": "class"
     }
   ]
 }

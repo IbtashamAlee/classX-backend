@@ -41,15 +41,15 @@ async function makeSystemAdmin(email){
         }
     })
     if(user){
-        const role = await prisma.role.findMany({
+        const role = await prisma.role.findUnique({
             where:{
                 name:"SystemAdmin"
             }
         });
-        const userRole = await prisma.userRole.create({
+        await prisma.userRole.create({
             data:{
                 userId:user.id,
-                roleId:role[0].id
+                roleId:role.id
             }
         })
     }
@@ -59,10 +59,9 @@ async function makeSystemAdmin(email){
 
 
 createSystemAdminRole().then(()=>{
-    console.log("System Admin created");
+    makeSystemAdmin("faseehahmad21@gmail.com")
+        .then(()=> {
+            console.log("user now has admin previleges");
+        })
 })
 
-// makeSystemAdmin("faseehahmad21@gmail.com")
-// .then(()=> {
-//     console.log("user now has admin previleges");
-// })

@@ -91,7 +91,7 @@ model Institute {
 
 model Department {
   id Int @id @default(autoincrement())
-  name  String @db.VarChar(255)
+  name  String @db.VarChar(255) @unique
   institute Institute @relation(fields: [instituteId], references: [id])
   instituteId Int
   deletedAt DateTime? @db.Timestamptz(6)
@@ -379,7 +379,7 @@ model Notifications{
 
 model Role{
   id Int @id @default(autoincrement())
-  name  String @db.VarChar(255)
+  name  String @db.VarChar(255) @unique
   class Class? @relation(fields: [classId], references: [id])
   classId Int?
   department Department? @relation(fields: [departmentId], references: [id])

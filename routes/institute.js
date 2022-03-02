@@ -5,9 +5,10 @@ const prisma = new PrismaClient();
 const {verifyUser} = require('../middlewares/verifyUser');
 const {verifySystemAdmin} = require('../middlewares/verifySystemAdmin');
 const {verifyInstituteAdmin} = require('../middlewares/verifyInstituteAdmin')
-const {permissions} = require('../permissions/instituteAdmin.json');
+const InstituteAdminPermissions = require('../permissions/instituteAdmin.json');
+const DepartmentAdminPermissions = require('../permissions/departmentAdmin.json');
+
 const {checkPermission} = require('../functions/checkPermission');
-const {check} = require("prisma");
 
 router.get('/', verifyUser, verifySystemAdmin, async (req, res) => {
     const institutes = await prisma.institute.findMany();
@@ -38,6 +39,7 @@ router.put('/request/process/:id', verifyUser, verifySystemAdmin, async (req, re
             id: parseInt(req.params.id)
         }
     });
+    if(!result) return res.status(404).send("Institute Request not found")
     if (result.acceptedAt !== null || result.rejectedAt !== null) return res.send("request already processed");
     const request = await prisma.instituteRequest.update({
         where: {
@@ -57,40 +59,92 @@ router.put('/request/process/:id', verifyUser, verifySystemAdmin, async (req, re
     }) : res.json(request)
 })
 
-router.put('/delete/:id',verifyUser,verifySystemAdmin,async(req,res)=>{
-    const institute  =  await prisma.institute.update({
-        where:{
-            id : parseInt(req.params.id)
-        },
-        data:{
-            deletedAt : new Date()
-        }
-    })
-    res.send(institute);
-})
-
-router.put('/restore/:id',verifyUser,verifySystemAdmin,async(req,res)=>{
+router.put('/delete/:id', verifyUser, verifySystemAdmin, async (req, res) => {
     const institute = await prisma.institute.update({
-        where:{
-            id : parseInt(req.params.id)
+        where: {
+            id: parseInt(req.params.id)
         },
-        data:{
-            deletedAt : null
+        data: {
+            deletedAt: new Date()
         }
     })
     res.send(institute);
 })
 
-router.post('/:id/add-department',verifyUser,async(req,res)=>{
-    console.log(req.body.name , req.params.id)
-    const isPermitted = await checkPermission(req.user,'14_'+req.params.id);
-    if(!isPermitted) return res.status(401).send("not permitted to perform this task");
+router.put('/restore/:id', verifyUser, verifySystemAdmin, async (req, res) => {
+    const institute = await prisma.institute.update({
+        where: {
+            id: parseInt(req.params.id)
+        },
+        data: {
+            deletedAt: null
+        }
+    })
+    res.send(institute);
+})
+
+router.post('/:id/add-department', verifyUser, async (req, res) => {
+    console.log(req.body.name, req.params.id)
+    const isPermitted = await checkPermission(req.user, '14_' + req.params.id);
+    const institute = await prisma.institute.findUnique({
+        where : {
+            id : parseInt(req.params.id)
+        }
+    })
+    const exisitingDepartment = await prisma.department.findUnique({
+        where :{
+            name: req.body.name+'_'+req.params.id,
+        }
+    })
+    if(exisitingDepartment) return res.status(409).send("Department already Exists")
+    if(!institute) return res.status(404).send("Institute not found");
+    if (!isPermitted) return res.status(401).send("not permitted to perform this task");
+    const departmentAdmin = await prisma.user.findUnique({
+        where: {
+            email: req.body.adminId,
+        }
+    })
+    if (!departmentAdmin) return res.status(404).send("Proposed Admin user not found");
     const department = await prisma.department.create({
-        data:{
-            name:req.body.name,
-            instituteId: parseInt(req.params.id)
+        data: {
+            name: req.body.name+'_'+req.params.id,
+            instituteId: parseInt(req.params.id),
+            adminId: departmentAdmin.id
         },
     });
+    const role = await prisma.role.create({
+        data:{
+            name : 'DepartmentAdmin_' + department.id,
+            instituteId : parseInt(req.params.id),
+            departmentId : department.id
+        }
+    });
+    DepartmentAdminPermissions.permissions
+        .filter(p => p.status === 'general')
+        .map(async per => {
+        const permission = await prisma.permission.upsert({
+            where: {
+                code: per.code + '_' + department.id
+            },
+            update: {},
+            create: {
+                name: per.name + '_' + department.id,
+                code: per.code + '_' + department.id,
+            },
+        })
+        await prisma.rolePermission.create({
+            data: {
+                permissionId: permission.id,
+                roleId: role.id
+            }
+        })
+    });
+    await prisma.userRole.create({
+        data: {
+            userId: departmentAdmin.id,
+            roleId: role.id
+        }
+    })
     return res.send(department)
 })
 
@@ -108,11 +162,11 @@ async function createInstitute(request) {
     });
     const role = await prisma.role.create({
         data: {
-            name: 'Institute Admin' + '_' + institute.id,
+            name: 'InstituteAdmin_' + institute.id,
             instituteId: institute.id,
         }
     })
-    permissions.map(async per => {
+    InstituteAdminPermissions.permissions.map(async per => {
         const permission = await prisma.permission.upsert({
             where: {
                 code: per.code + '_' + institute.id

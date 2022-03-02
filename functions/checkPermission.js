@@ -7,16 +7,15 @@ async function checkPermission(user,pcode){
             code: pcode
         }
     });
-    let permissionExists = false;
-    const permissions = []
+    let isPermitted = false;
     if(!userPermission) return 0;
     user.userRole.map(userRole => {
         userRole.role.rolePermission.map(permission=>{
             if(userPermission.id === permission.permissionId)
-                permissionExists = true;
+                isPermitted = true;
         })
     })
-    return permissionExists;
+    return isPermitted;
 }
 
 module.exports.checkPermission  = checkPermission;
