@@ -155,10 +155,12 @@ router.get('/:id/departments', verifyUser, async (req, res) => {
         }
     })
     if(!role) return res.status(404).send("admin role not found");
-    const userRole = prisma.userRole.findUnique({
-        where : {
-            userId : req.user.id,
-            roleId : role.id
+    const userRole = await prisma.userRole.findUnique({
+        where: {
+            roleId_userId: {
+                userId : req.user.id,
+                roleId : role.id
+            }
         }
     });
     if(!userRole) return res.status(401).send("unauthorized");
@@ -178,7 +180,7 @@ router.get('/:id/departments', verifyUser, async (req, res) => {
 
 //add another institute admin
 router.post('/:id/add-admin',verifyUser,async(req,res)=>{
-    const isPermitted = checkPermission(req.user,'06_'+req.params.id);
+    const isPermitted = await checkPermission(req.user,'06_'+req.params.id);
     if(!req.body.email) return res.status(400).send("email not provided");
     if(req.body.email === req.user.email) return res.status(400).send("bad request")
     if(!isPermitted) return res.status(401).send("unauthorized");
