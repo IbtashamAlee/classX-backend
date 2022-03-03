@@ -4,7 +4,6 @@ const {PrismaClient} = require(".prisma/client");
 const prisma = new PrismaClient();
 const {verifyUser} = require('../middlewares/verifyUser');
 const {verifySystemAdmin} = require('../middlewares/verifySystemAdmin');
-const {verifyInstituteAdmin} = require('../middlewares/verifyInstituteAdmin')
 const InstituteAdminPermissions = require('../permissions/instituteAdmin.json');
 const DepartmentAdminPermissions = require('../permissions/departmentAdmin.json');
 
@@ -39,7 +38,7 @@ router.put('/request/process/:id', verifyUser, verifySystemAdmin, async (req, re
             id: parseInt(req.params.id)
         }
     });
-    if(!result) return res.status(404).send("Institute Request not found")
+    if (!result) return res.status(404).send("Institute Request not found")
     if (result.acceptedAt !== null || result.rejectedAt !== null) return res.send("request already processed");
     const request = await prisma.instituteRequest.update({
         where: {
@@ -87,17 +86,17 @@ router.post('/:id/add-department', verifyUser, async (req, res) => {
     console.log(req.body.name, req.params.id)
     const isPermitted = await checkPermission(req.user, '14_' + req.params.id);
     const institute = await prisma.institute.findUnique({
-        where : {
-            id : parseInt(req.params.id)
+        where: {
+            id: parseInt(req.params.id)
         }
     })
     const exisitingDepartment = await prisma.department.findUnique({
-        where :{
-            name: req.body.name+'_'+req.params.id,
+        where: {
+            name: req.body.name + '_' + req.params.id,
         }
     })
-    if(exisitingDepartment) return res.status(409).send("Department already Exists")
-    if(!institute) return res.status(404).send("Institute not found");
+    if (exisitingDepartment) return res.status(409).send("Department already Exists")
+    if (!institute) return res.status(404).send("Institute not found");
     if (!isPermitted) return res.status(401).send("not permitted to perform this task");
     const departmentAdmin = await prisma.user.findUnique({
         where: {
@@ -107,38 +106,38 @@ router.post('/:id/add-department', verifyUser, async (req, res) => {
     if (!departmentAdmin) return res.status(404).send("Proposed Admin user not found");
     const department = await prisma.department.create({
         data: {
-            name: req.body.name+'_'+req.params.id,
+            name: req.body.name + '_' + req.params.id,
             instituteId: parseInt(req.params.id),
             adminId: departmentAdmin.id
         },
     });
     const role = await prisma.role.create({
-        data:{
-            name : 'DepartmentAdmin_' + department.id,
-            instituteId : parseInt(req.params.id),
-            departmentId : department.id
+        data: {
+            name: 'DepartmentAdmin_' + department.id,
+            instituteId: parseInt(req.params.id),
+            departmentId: department.id
         }
     });
     DepartmentAdminPermissions.permissions
         .filter(p => p.status === 'general')
         .map(async per => {
-        const permission = await prisma.permission.upsert({
-            where: {
-                code: per.code + '_' + department.id
-            },
-            update: {},
-            create: {
-                name: per.name + '_' + department.id,
-                code: per.code + '_' + department.id,
-            },
-        })
-        await prisma.rolePermission.create({
-            data: {
-                permissionId: permission.id,
-                roleId: role.id
-            }
-        })
-    });
+            const permission = await prisma.permission.upsert({
+                where: {
+                    code: per.code + '_' + department.id
+                },
+                update: {},
+                create: {
+                    name: per.name + '_' + department.id,
+                    code: per.code + '_' + department.id,
+                },
+            })
+            await prisma.rolePermission.create({
+                data: {
+                    permissionId: permission.id,
+                    roleId: role.id
+                }
+            })
+        });
     await prisma.userRole.create({
         data: {
             userId: departmentAdmin.id,
@@ -148,8 +147,73 @@ router.post('/:id/add-department', verifyUser, async (req, res) => {
     return res.send(department)
 })
 
+
+router.get('/:id/departments', verifyUser, async (req, res) => {
+    const role = await prisma.role.findUnique({
+        where :{
+            name : 'InstituteAdmin_' + req.params.id
+        }
+    })
+    if(!role) return res.status(404).send("admin role not found");
+    const userRole = prisma.userRole.findUnique({
+        where : {
+            userId : req.user.id,
+            roleId : role.id
+        }
+    });
+    if(!userRole) return res.status(401).send("unauthorized");
+    const institute = await prisma.institute.findUnique({
+        where:{
+            id : parseInt(req.params.id)
+        }
+    });
+    if(!institute) return res.status(404).send("institute not found");
+    const departments = await prisma.department.findMany({
+        where : {
+            instituteId : parseInt(req.params.id)
+        }
+    })
+    return res.status(200).json(departments);
+})
+
+//add another institute admin
+router.post('/:id/add-admin',verifyUser,async(req,res)=>{
+    const isPermitted = checkPermission(req.user,'06_'+req.params.id);
+    if(!req.body.email) return res.status(400).send("email not provided");
+    if(req.body.email === req.user.email) return res.status(400).send("bad request")
+    if(!isPermitted) return res.status(401).send("unauthorized");
+    const user = await prisma.user.findUnique({
+        where:{
+            email : req.body.email
+        }
+    })
+    if(!user) return res.status(404).send("proposed user not found");
+    const role = await prisma.role.findUnique({
+        where:{
+            name: "InstituteAdmin_" + req.params.id
+        }
+    })
+    if(!role) return res.status(404).send("role does not exist");
+    const userRole = await prisma.userRole.upsert({
+        where: {
+            roleId_userId: {
+                    roleId: role.id,
+                    userId: user.id
+            }
+        },
+        update:{},
+        create:{
+            roleId: role.id,
+            userId: user.id
+            }
+    });
+    return res.send(userRole);
+})
+
+
+
 /*This function created an institute after accepting request
-* It adds a role and exlplicit permissions to database
+* It adds a role and explicit permissions to database
 * The admin user is assigned the newly created role
 */
 async function createInstitute(request) {

@@ -7,6 +7,7 @@ const indexRouter = require('./routes/index');
 const usersRouter = require('./routes/users');
 const authenticationRouter = require('./routes/authentication');
 const instituteRouter = require('./routes/institute');
+const departmentRouter = require('./routes/department');
 
 const app = express();
 
@@ -20,5 +21,6 @@ app.use('/', indexRouter);
 app.use('/users',usersRouter);
 app.use('/authentication',authenticationRouter);
 app.use('/institutes',instituteRouter);
+app.use('/departments',departmentRouter);
 
 module.exports = app;
