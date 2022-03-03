@@ -5,7 +5,12 @@ const prisma = new PrismaClient();
 const {verifyUser} = require('../middlewares/verifyUser');
 const {verifySystemAdmin} = require('../middlewares/verifySystemAdmin');
 const {checkPermission} = require('../functions/checkPermission');
+const randomstring = require("randomstring");
+const StudentPermissions = require('../permissions/student.json');
+const TeacherPermissions = require('../permissions/teacher.json');
 
+const DepartmentAdminPermissions = require('../permissions/departmentAdmin.json');
+const InstituteAdminPermissions = require("../permissions/instituteAdmin.json");
 
 
 router.get('/', verifyUser, verifySystemAdmin, async (req, res) => {
@@ -43,8 +48,7 @@ router.post('/:id/add-admin',verifyUser,async (req,res)=>{
             name : 'DepartmentAdmin_'+req.params.id
         }
     });
-    console.log(role)
-    const userRole = await prisma.userRole.upsert({
+    await prisma.userRole.upsert({
         where: {
             roleId_userId: {
                 roleId: role.id,
@@ -57,6 +61,119 @@ router.post('/:id/add-admin',verifyUser,async (req,res)=>{
             userId: user.id
         }
     });
-    res.send(userRole)
+    res.send({message:"new department admin created"});
+})
+
+router.post('/:id/add-class',verifyUser,async (req,res)=>{
+    const isPermitted = await checkPermission(req.user,'15_'+req.params.id);
+    if(!isPermitted) return res.status(403).send("not permitted")
+    const newClass = await prisma.class.create({
+        data:{
+            name : req.body.name,
+            description : req.body.description,
+            departmentId : parseInt(req.params.id),
+            code : randomstring.generate(5),
+        }
+    })
+    const updatedClass = await prisma.class.update({
+        where:{
+            id: newClass.id,
+        },
+        data:{
+            code : newClass.code + newClass.id
+        }
+    })
+    const teacherRole = await prisma.role.upsert({
+        where:{
+            name: 'Teacher_'+newClass.id,
+        },
+        update:{},
+        create:{
+            name: 'Teacher_'+newClass.id,
+            classId : newClass.id,
+            departmentId : parseInt(req.params.id)
+        }
+    })
+    const studentRole = await prisma.role.upsert({
+        where:{
+            name: 'Teacher_' + newClass.id,
+        },
+        update:{},
+        create: {
+            name: 'Teacher_' + newClass.id,
+            classId: newClass.id,
+            departmentId: parseInt(req.params.id)
+        }
+    })
+    const departmentAdmin = await prisma.role.findUnique({
+        where :{
+            name :'DepartmentAdmin_'+req.params.id
+        }
+    })
+    //Generating permission for student role
+    await StudentPermissions.permissions.map(async per => {
+        const permission = await prisma.permission.upsert({
+            where: {
+                code: per.code + '_' + newClass.id
+            },
+            update: {},
+            create: {
+                name: per.name + '_' + newClass.id,
+                code: per.code + '_' + newClass.id,
+            },
+        })
+        await prisma.rolePermission.create({
+            data: {
+                permissionId: permission.id,
+                roleId: studentRole.id
+            }
+        })
+    });
+
+    //Generating permission for teachers role
+    await TeacherPermissions.permissions.map(async per => {
+        const permission = await prisma.permission.upsert({
+            where: {
+                code: per.code + '_' + newClass.id
+            },
+            update: {},
+            create: {
+                name: per.name + '_' + newClass.id,
+                code: per.code + '_' + newClass.id,
+            },
+        })
+        await prisma.rolePermission.create({
+            data: {
+                permissionId: permission.id,
+                roleId: teacherRole.id
+            }
+        })
+    });
+
+    //Generating permission for department admin role
+    await DepartmentAdminPermissions.permissions
+        .filter(p => p.status === 'class')
+        .map(async per => {
+        const permission = await prisma.permission.upsert({
+            where: {
+                code: per.code + '_' + newClass.id
+            },
+            update: {},
+            create: {
+                name: per.name + '_' + newClass.id,
+                code: per.code + '_' + newClass.id,
+            },
+        })
+        await prisma.rolePermission.create({
+            data: {
+                permissionId: permission.id,
+                roleId: departmentAdmin.id
+            }
+        })
+    });
+
+    return res.send(updatedClass);
+
+
 })
 module.exports = router;

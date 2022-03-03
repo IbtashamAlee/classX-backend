@@ -125,11 +125,11 @@ model InstituteRequestAttachment{
 model Class{
   id Int @id @default(autoincrement())
   name  String @db.VarChar(255)
-  description String
+  description String?
   department Department @relation(fields: [departmentId], references: [id])
   departmentId Int
-  code String @db.VarChar(255)
-  deletedAt DateTime @db.Timestamptz(6)
+  code String @db.VarChar(16) @unique
+  deletedAt DateTime? @db.Timestamptz(6)
   classParticipants ClassParticipants[]
   role Role[]
   classPost ClassPost[]
