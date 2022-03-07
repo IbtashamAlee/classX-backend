@@ -8,10 +8,7 @@ const {checkPermission} = require('../functions/checkPermission');
 const randomstring = require("randomstring");
 const StudentPermissions = require('../permissions/student.json');
 const TeacherPermissions = require('../permissions/teacher.json');
-
 const DepartmentAdminPermissions = require('../permissions/departmentAdmin.json');
-const InstituteAdminPermissions = require("../permissions/instituteAdmin.json");
-
 
 router.get('/', verifyUser, verifySystemAdmin, async (req, res) => {
     const departments = await prisma.department.findMany();
@@ -110,6 +107,7 @@ router.post('/:id/add-class',verifyUser,async (req,res)=>{
             name :'DepartmentAdmin_'+req.params.id
         }
     })
+
     //Generating permission for student role
     await StudentPermissions.permissions.map(async per => {
         const permission = await prisma.permission.upsert({
@@ -173,7 +171,5 @@ router.post('/:id/add-class',verifyUser,async (req,res)=>{
     });
 
     return res.send(updatedClass);
-
-
 })
 module.exports = router;

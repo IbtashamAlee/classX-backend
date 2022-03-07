@@ -1,9 +1,9 @@
 {
   "env":{
     "PORT": 3000,
-    "AWS_ACCESS_KEY_ID": "blaablaablaa234bla",
-    "AWS_SECRET_KEY": "bla123bla123blablablaa/blaba+blabla",
-    "AWS_BUCKET_NAME": "gallerybucket33",
-    "AWS_REGION": "eu-central-1"
+    "AWS_ACCESS_KEY_ID": "AKIATWU534THTXTTJA4U",
+    "AWS_SECRET_KEY": "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",
+    "AWS_BUCKET_NAME": "classxfiles",
+    "AWS_REGION": "ap-south-1"
   }
 }
