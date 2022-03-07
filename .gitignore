@@ -121,3 +121,4 @@ sendgrid.env
 
 # development environment
 nodemon.json
+nodemon.json*
