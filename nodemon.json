@@ -1,9 +1,0 @@
-{
-  "env":{
-    "PORT": 3000,
-    "AWS_ACCESS_KEY_ID": "AKIATWU534THTXTTJA4U",
-    "AWS_SECRET_KEY": "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",
-    "AWS_BUCKET_NAME": "classxfiles",
-    "AWS_REGION": "ap-south-1"
-  }
-}
