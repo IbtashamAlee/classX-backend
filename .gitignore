@@ -118,8 +118,3 @@ dist
 .yarn/install-state.gz
 .pnp.*
 sendgrid.env
-
-# development environment
-/nodemon.json
-/nodemon.json
-nodemon.json
