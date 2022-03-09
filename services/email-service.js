@@ -6,15 +6,16 @@ class EmailService {
         return new Promise(function (resolve, reject) {
             const msg = {
                 to: email, // User's mail address
-                from: process.env.sendGridEmail, // Verified SendGrid Mail Address
+                from: process.env.SENDGRID_MAIL, // Verified SendGrid Mail Address
                 template_id: process.env.SENDGRID_NEW_POST,
                 subject: "ClassX Email Verification",
                 dynamic_template_data: {
                     name: name,
-                    VerificationURL: "http://localhost:3000/authentication/verifymail/" + token + "=" + email,
+                    VerificationURL: "http://localhost:3000/authentication/verify-mail/" + token + "=" + email,
                 },
             };
             sgMail.send(msg).then((res) => {
+                console.log('email sent ')
                 resolve(res);
             }).catch((error) => {
                 reject(error);
