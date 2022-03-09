@@ -6,7 +6,7 @@ const {PrismaClient} = require("@prisma/client");
 const prisma = new PrismaClient();
 
 //endpoint to get all users
-router.get("/", verifyUser,verifySystemAdmin, async (req, res) => {
+router.get("/", verifyUser, verifySystemAdmin, async (req, res) => {
     const users = await prisma.user.findMany();
     return res.status(200).json(users);
 });
@@ -17,7 +17,7 @@ router.get("/me", verifyUser, async (req, res) => {
     return res.status(200).json({id, name, email, userStatus, imageURL});
 });
 
-router.put("/block/:id", verifyUser,verifySystemAdmin, async (req, res) => {
+router.put("/block/:id", verifyUser, verifySystemAdmin, async (req, res) => {
     try {
         const user = await prisma.user.update({
             where: {
@@ -32,7 +32,7 @@ router.put("/block/:id", verifyUser,verifySystemAdmin, async (req, res) => {
     }
 });
 
-router.put("/unblock/:id", verifyUser,verifySystemAdmin, async (req, res) => {
+router.put("/unblock/:id", verifyUser, verifySystemAdmin, async (req, res) => {
     try {
         const user = await prisma.user.update({
             where: {

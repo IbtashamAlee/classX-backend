@@ -17,8 +17,8 @@ const upload = multer({
     })
 })
 
-router.get('/getdownloadlink',async(req,res)=>{
-    if(req.body.key){
+router.get('/getdownloadlink', async (req, res) => {
+    if (req.body.key) {
         return res.send(s3.getSignedUrl('getObject', {
             Bucket: process.env.AWS_BUCKET_NAME,
             Key: req.body.key, //filename
@@ -30,14 +30,14 @@ router.get('/getdownloadlink',async(req,res)=>{
 
 //Uploading single File to aws s3 bucket
 router.post('/upload', upload.single('file'), function (req, res, next) {
-    if(req.file)
+    if (req.file)
         return res.send(req.file);
     return res.status(404).send("file not found");
 })
 
 //Uploading Multiple Files to aws s3 bucket
-router.post('/uploadmultiple', upload.array('file',5), function (req, res, next) {
-    if (req.files){
+router.post('/uploadmultiple', upload.array('file', 5), function (req, res, next) {
+    if (req.files) {
         res.send({
             data: req.files,
             msg: 'Successfully uploaded ' + req.files.length + ' files!'

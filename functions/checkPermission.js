@@ -1,21 +1,21 @@
 const {PrismaClient} = require("@prisma/client");
 const prisma = new PrismaClient();
 
-async function checkPermission(user,pcode){
+async function checkPermission(user, pcode) {
     const userPermission = await prisma.permission.findUnique({
-        where:{
+        where: {
             code: pcode
         }
     });
     let isPermitted = false;
-    if(!userPermission) return false;
+    if (!userPermission) return false;
     user.userRole.map(userRole => {
-        userRole.role.rolePermission.map(permission=>{
-            if(userPermission.id === permission.permissionId)
+        userRole.role.rolePermission.map(permission => {
+            if (userPermission.id === permission.permissionId)
                 isPermitted = true;
         })
     })
     return isPermitted;
 }
 
-module.exports.checkPermission  = checkPermission;
+module.exports.checkPermission = checkPermission;

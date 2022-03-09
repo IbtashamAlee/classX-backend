@@ -14,15 +14,15 @@ const app = express();
 
 app.use(logger('dev'));
 app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
+app.use(express.urlencoded({extended: false}));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.use('/', indexRouter);
-app.use('/users',usersRouter);
-app.use('/authentication',authenticationRouter);
-app.use('/institutes',instituteRouter);
-app.use('/departments',departmentRouter);
-app.use('/file',fileRouter)
+app.use('/users', usersRouter);
+app.use('/authentication', authenticationRouter);
+app.use('/institutes', instituteRouter);
+app.use('/departments', departmentRouter);
+app.use('/file', fileRouter)
 
 module.exports = app;

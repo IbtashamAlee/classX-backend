@@ -135,13 +135,13 @@ router.post("/sendemailverification", async (req, res) => {
 //System admin can make another user system admin
 router.post('/makeAdmin', verifyUser, verifySystemAdmin, async (req, res) => {
     try {
-        if(!req.body.email) return res.status(401).send("email not provided");
+        if (!req.body.email) return res.status(401).send("email not provided");
         const user = await prisma.user.findUnique({
             where: {
                 email: req.body.email,
             }
         })
-        if(!user) return res.status(404).send("User not found");
+        if (!user) return res.status(404).send("User not found");
         const role = await prisma.role.findMany({
             where: {
                 name: "SystemAdmin"
@@ -153,8 +153,7 @@ router.post('/makeAdmin', verifyUser, verifySystemAdmin, async (req, res) => {
             }
         })
         return res.status(200).send({resp: "admin privileges created for user", userRole});
-    }
-    catch (e) {
+    } catch (e) {
         if (e.code === 'P2002') {
             return res.status(409).send("Role Already Exists");
         }

@@ -150,68 +150,67 @@ router.post('/:id/add-department', verifyUser, async (req, res) => {
 
 router.get('/:id/departments', verifyUser, async (req, res) => {
     const role = await prisma.role.findUnique({
-        where :{
-            name : 'InstituteAdmin_' + req.params.id
+        where: {
+            name: 'InstituteAdmin_' + req.params.id
         }
     })
-    if(!role) return res.status(404).send("admin role not found");
+    if (!role) return res.status(404).send("admin role not found");
     const userRole = await prisma.userRole.findUnique({
         where: {
             roleId_userId: {
-                userId : req.user.id,
-                roleId : role.id
+                userId: req.user.id,
+                roleId: role.id
             }
         }
     });
-    if(!userRole) return res.status(401).send("unauthorized");
+    if (!userRole) return res.status(401).send("unauthorized");
     const institute = await prisma.institute.findUnique({
-        where:{
-            id : parseInt(req.params.id)
+        where: {
+            id: parseInt(req.params.id)
         }
     });
-    if(!institute) return res.status(404).send("institute not found");
+    if (!institute) return res.status(404).send("institute not found");
     const departments = await prisma.department.findMany({
-        where : {
-            instituteId : parseInt(req.params.id)
+        where: {
+            instituteId: parseInt(req.params.id)
         }
     })
     return res.status(200).json(departments);
 })
 
 //add another institute admin
-router.post('/:id/add-admin',verifyUser,async(req,res)=>{
-    const isPermitted = await checkPermission(req.user,'06_'+req.params.id);
-    if(!req.body.email) return res.status(400).send("email not provided");
-    if(req.body.email === req.user.email) return res.status(400).send("bad request")
-    if(!isPermitted) return res.status(401).send("unauthorized");
+router.post('/:id/add-admin', verifyUser, async (req, res) => {
+    const isPermitted = await checkPermission(req.user, '06_' + req.params.id);
+    if (!req.body.email) return res.status(400).send("email not provided");
+    if (req.body.email === req.user.email) return res.status(400).send("bad request")
+    if (!isPermitted) return res.status(401).send("unauthorized");
     const user = await prisma.user.findUnique({
-        where:{
-            email : req.body.email
+        where: {
+            email: req.body.email
         }
     })
-    if(!user) return res.status(404).send("proposed user not found");
+    if (!user) return res.status(404).send("proposed user not found");
     const role = await prisma.role.findUnique({
-        where:{
+        where: {
             name: "InstituteAdmin_" + req.params.id
         }
     })
-    if(!role) return res.status(404).send("role does not exist");
+    if (!role) return res.status(404).send("role does not exist");
     const userRole = await prisma.userRole.upsert({
         where: {
             roleId_userId: {
-                    roleId: role.id,
-                    userId: user.id
+                roleId: role.id,
+                userId: user.id
             }
         },
-        update:{},
-        create:{
+        update: {},
+        create: {
             roleId: role.id,
             userId: user.id
-            }
+        }
     });
     return res.send(userRole);
 })
-
 
 
 /*This function created an institute after accepting request

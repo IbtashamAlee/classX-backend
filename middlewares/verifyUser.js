@@ -2,7 +2,7 @@ const {PrismaClient} = require('@prisma/client')
 const prisma = new PrismaClient()
 
 async function verifyUser(req, res, next) {
-    let token = req.header('Authorization')?req.header('Authorization').split(" ")[1]:null;
+    let token = req.header('Authorization') ? req.header('Authorization').split(" ")[1] : null;
     if (!token) return res.status(400).send("Token not provided");
     const session = await prisma.userSession.findUnique({
         where: {
@@ -12,9 +12,9 @@ async function verifyUser(req, res, next) {
             user: {
                 include: {
                     userRole: {
-                        include:{
-                            role : {
-                                include:{
+                        include: {
+                            role: {
+                                include: {
                                     rolePermission: true
                                 }
                             }
@@ -30,8 +30,7 @@ async function verifyUser(req, res, next) {
         req.session = session.id;
         return next();
 
-    }
-    else
+    } else
         return res.status(404).send("user not found");
 }
 

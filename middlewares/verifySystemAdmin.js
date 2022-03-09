@@ -8,13 +8,12 @@ async function verifySystemAdmin(req, res, next) {
             name: "SystemAdmin",
         }
     });
-    if(role.length > 0){
-        const verifiedRole  = user.userRole.filter(t => {
+    if (role.length > 0) {
+        const verifiedRole = user.userRole.filter(t => {
             return t.roleId === role[0].id
         })
         verifiedRole.length > 0 ? next() : res.status(401).send("unauthorized")
-    }
-    else
+    } else
         return res.status(404).send("Admin Role does not exist.")
 }
 
