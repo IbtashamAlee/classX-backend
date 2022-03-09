@@ -1,6 +1,5 @@
 const express = require("express");
 const router = express.Router();
-const sgMail = require("@sendgrid/mail");
 const {signupValidation, loginValidation} = require("../middlewares/userValidation");
 const {encryptPassword, verifyPassword} = require("../models/users");
 const {verifySystemAdmin} = require("../middlewares/verifySystemAdmin");
@@ -9,28 +8,9 @@ const randomstring = require("randomstring");
 const parser = require("ua-parser-js");
 const {verifyUser} = require("../middlewares/verifyUser");
 const prisma = new PrismaClient();
-require("dotenv").config();
-
-//This function sends an email to the user with a link to verify their email address
-async function sendVerification(name, email, token) {
-    const apiKey = `${process.env.SENDGRID_API_KEY}`;
-    sgMail.setApiKey(apiKey);
-    const msg = {
-        to: email, // User's mail address
-        from: "faseehahmad00@gmail.com", //Verified SendGrid Mail Address
-        template_id: `${process.env.SENDGRID_NEW_POST}`, subject: "ClassX Email Verification", dynamic_template_data: {
-            name: name, VerificationURL: "http://localhost:3000/authentication/verifymail/" + token + "=" + email,
-        },
-    };
-    sgMail
-        .send(msg)
-        .then(() => {
-            console.log("Email sent");
-        })
-        .catch((error) => {
-            console.error(error);
-        });
-}
+const EmailService = require('../services/email-service');
+const sendVerification = EmailService.sendVerification;
+const resetPassword = EmailService.resetPassword;
 
 //This is route for user signup, and it validates the user data
 router.post(`/signup`, signupValidation, async (req, res) => {
@@ -184,5 +164,41 @@ router.get("/sessions", verifyUser, async (req, res) => {
     })
     res.json(sessions);
 })
+
+router.post('/password-reset', async (req, res) => {
+    prisma.user.findUnique({
+        where: {
+            email: req.body.email
+        }
+    }).then(user => {
+        if (user) {
+            let resetToken = randomstring.generate(64);
+            prisma.user.update({
+                where: {
+                    email: req.body.email
+                },
+                data: {
+                    resetToken: resetToken
+                }
+            }).then((response) => {
+                if (response) {
+                    resetPassword(user.name, user.email, resetToken).then((result) => {
+                        res.status(200).send("Reset link has been sent successfully")
+                    }).catch(err => {
+                        res.status(409).send("Unable to send email");
+                    })
+                }
+            }).catch(err => {
+                res.status(409).send("Unable to update reset link");
+            })
+        }
+    }).catch(err => {
+        res.status(404).send("Could not find user");
+    })
+})
+
+// router.get("/password-reset/:token", async (req, res) => {
+//
+// })
 
 module.exports = router;
