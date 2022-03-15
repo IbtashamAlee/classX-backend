@@ -217,4 +217,27 @@ router.post('/password-reset', async (req, res) => {
     })
 })
 
+router.get("/password-reset/:token", async (req, res) => {
+    const temp = req.params.token.split("=");
+    const token = temp[0];
+    const mail = temp[1];
+    prisma.user.findUnique({
+        where: {
+            email: mail,
+        },
+    }).then(user => {
+        if (user) {
+            if (token !== user.resetToken) {
+                res.status(400).send("invalid reset token.")
+            } else {
+                res.status(200).send("Reset token verified!");
+            }
+        } else {
+            res.status(404).send("Unable to find user")
+        }
+    }).catch(err => {
+        res.status(409).send("Unable to fetch user");
+    })
+})
+
 module.exports = router;
