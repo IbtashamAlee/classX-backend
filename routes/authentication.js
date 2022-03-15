@@ -15,28 +15,45 @@ const resetPassword = EmailService.resetPassword;
 //This is route for user signup, and it validates the user data
 router.post(`/signup`, signupValidation, async (req, res) => {
     let pass = await encryptPassword(req.body.password);
-    let EmailVerificationCode = randomstring.generate(64);
-    try {
-        const result = await prisma.user.create({
-            data: {
-                name: req.body.name,
-                email: req.body.email,
-                password: pass,
-                createdAt: new Date(),
-                emailToken: EmailVerificationCode,
-            },
-        });
-        sendVerification(req.body.name, req.body.email, EmailVerificationCode)
-            .then(() => {
-                return res.status(200).send(result);
-            });
-    } catch (e) {
-        return res.status(409).send(e);
-    }
+    const EMAIL_VERIFICATION_TOKEN = randomstring.generate(64);
+
+    prisma.user.findUnique({
+        where: {
+            email: req.body.email
+        }
+    }).then(user => {
+        if (user) {
+            res.status(409).send("User already exists.");
+        } else {
+            sendVerification(req.body.name, req.body.email, EMAIL_VERIFICATION_TOKEN).then(() => {
+                prisma.user.create({
+                    data: {
+                        name: req.body.name,
+                        email: req.body.email,
+                        password: pass,
+                        createdAt: new Date(),
+                        emailToken: EMAIL_VERIFICATION_TOKEN,
+                    },
+                }).then(user => {
+                    if (user) {
+                        return res.status(200).send(user);
+                    } else {
+                        res.status(409);
+                    }
+                }).catch(err => {
+                    res.status(400).send("Unable to create user. User might already exists");
+                })
+            }).catch(err => {
+                res.status(409).send("Unable to create user and could not send verification code");
+            })
+        }
+    }).catch(err => {
+        res.status(409).send(err);
+    })
 });
 
 //This route processes user request for email verification
-router.get("/verify-mail/:id", async (req, res) => {
+router.get("/mail-verify/:id", async (req, res) => {
     try {
         const temp = req.params.id.split("=");
         const token = temp[0];
@@ -185,20 +202,42 @@ router.post('/password-reset', async (req, res) => {
                     resetPassword(user.name, user.email, resetToken).then((result) => {
                         res.status(200).send("Reset link has been sent successfully")
                     }).catch(err => {
+                        console.log(err);
                         res.status(409).send("Unable to send email");
                     })
+                } else {
+                    res.status(404).send("Could not find user");
                 }
             }).catch(err => {
                 res.status(409).send("Unable to update reset link");
             })
         }
     }).catch(err => {
-        res.status(404).send("Could not find user");
+        res.status(409).send("Something went wrong");
     })
 })
 
-// router.get("/password-reset/:token", async (req, res) => {
-//
-// })
+router.get("/password-reset/:token", async (req, res) => {
+    const temp = req.params.token.split("=");
+    const token = temp[0];
+    const mail = temp[1];
+    prisma.user.findUnique({
+        where: {
+            email: mail,
+        },
+    }).then(user => {
+        if (user) {
+            if (token !== user.resetToken) {
+                res.status(400).send("invalid reset token.")
+            } else {
+                res.status(200).send("Reset token verified!");
+            }
+        } else {
+            res.status(404).send("Unable to find user")
+        }
+    }).catch(err => {
+        res.status(409).send("Unable to fetch user");
+    })
+})
 
 module.exports = router;
