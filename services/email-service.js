@@ -9,7 +9,7 @@ class EmailService {
                 from: process.env.SENDGRID_EMAIL, // Verified SendGrid Mail Address
                 template_id: process.env.SENDGRID_MAIL_VERIFY,
                 subject: "ClassX Email Verification",
-                html: `<a href="http://localhost:${process.env.PORT}/authentication/mail-verify/${token}=${email}">Click here to verify<a/>`,
+                html: `<a href="http://localhost:${process.env.PORT}/authentication/mail-verify/${token}">Click here to verify<a/>`,
             };
             sgMail.send(msg).then((res) => {
                 console.log('Account verification email sent');

@@ -11,108 +11,91 @@ const prisma = new PrismaClient();
 const EmailService = require('../services/email-service');
 const sendVerification = EmailService.sendVerification;
 const resetPassword = EmailService.resetPassword;
+const safeAwait = require('../services/safe_await');
 
-//This is route for user signup, and it validates the user data
 router.post(`/signup`, signupValidation, async (req, res) => {
-    let pass = await encryptPassword(req.body.password);
+    let [pass, passErr] = await safeAwait(encryptPassword(req.body.password));
     const emailVerificationToken = randomstring.generate(64);
-    prisma.user.findUnique({
-        where: {
-            email: req.body.email
-        }
-    }).then(user => {
-        if (user) {
-            res.status(409).send("User already exists.");
-        } else {
-            sendVerification(req.body.name, req.body.email, emailVerificationToken).then(() => {
-                prisma.user.create({
-                    data: {
-                        name: req.body.name,
-                        email: req.body.email,
-                        password: pass,
-                        createdAt: new Date(),
-                        emailToken: emailVerificationToken,
-                    },
-                }).then(user => {
-                    if (user) {
-                        return res.status(200).send(user);
-                    } else {
-                        res.status(409);
-                    }
-                }).catch(err => {
-                    res.status(400).send("Unable to create user");
-                })
-            }).catch(err => {
-                res.status(409).send("Unable to create user and could not send verification code");
-            })
-        }
-    }).catch(err => {
-        res.status(409).send(err);
-    })
+    const [user, userErr] = await safeAwait(
+        prisma.user.findUnique({
+            where: {
+                email: req.body.email
+            }
+        }))
+    if (user) return res.send("user already exists");
+    const [e, emailErr] = await safeAwait(sendVerification(req.body.name, emailVerificationToken));
+    if (emailErr) return res.status(200).send("unable to create user")
+    const [newUser, newUserErr] = await safeAwait(prisma.user.create({
+        data: {
+            name: req.body.name,
+            email: req.body.email,
+            password: pass,
+            createdAt: new Date(),
+            emailToken: emailVerificationToken,
+        },
+    }));
+    if (newUserErr) return res.status(409).send("unable to create user");
+    return res.status(200).send("user created successfully");
 });
 
+
 //This route processes user request for email verification
-router.get("/mail-verify/:id", async (req, res) => {
-    try {
-        const temp = req.params.id.split("=");
-        const token = temp[0];
-        const mail = temp[1];
-        const result = await prisma.user.findUnique({
-            where: {
-                email: mail,
-            },
-        });
-        if (token !== result.emailToken) return res.status(400).send("invalid verification token.")
-        await prisma.user.update({
-            where: {
-                email: mail,
-            }, data: {
-                isVerified: true,
-            },
-        }).then(() => res.status(200).send("Email Verified Successfully. Continue to login"))
-    } catch (e) {
-        return res.status(403).send("Unable to Verify .Please Try Again");
-    }
+router.get("/mail-verify/:token", async (req, res) => {
+    const [userSession, userSessionErr] = await safeAwait(prisma.userSession.findUnique({
+        where: {
+            token: req.params.token,
+        },
+    }));
+    if (!userSession) return res.status(400).send("invalid verification token.")
+    const [updatedUser, updatedUserErr] = await safeAwait(prisma.user.update({
+        where: {
+            id: userSession.userId,
+        }, data: {
+            isVerified: true,
+        },
+    }))
+    if (updatedUserErr) return res.status(409).send("unable to verify.Please try again")
+    return res.send("user verified successfully.")
 });
 
 //This is route for user login
-// todo: rename login to signin
-router.post(`/login`, loginValidation, async (req, res) => {
-        const user = await prisma.user.findUnique({
-            where: {
-                email: req.body.email,
-            },
-        })
-        if (!user) return res.status(404).send("User not found");
-        const validPassword = await verifyPassword(req.body.password, user.password)
-        if (!validPassword) return res.status(403).send("Password is incorrect");
-        if (!user.isVerified) return res.status(401).send("Please verify your email first");
-        const myParser = new parser();
-        myParser.setUA(req.headers["user-agent"]);
-        const result = myParser.getResult();
-        const sessionToken = randomstring.generate(240);
-
-        // todo: fix this particular part of code
-        const session = await prisma.userSession.create({
-            data: {
-                userId: user.id,
-                createdAt: new Date(),
-                userAgent: result.ua || "unknown",
-                ipv4Address: req.headers["x-forwarded-for"] || req.socket.remoteAddress,
-                ipv6Address: req.headers["x-forwarded-for"] || req.socket.remoteAddress,
-                device_model: result.device.type + "-" + result.device.vendor + "-" + result.device.model || "unknown",
-                browser_version: result.browser.version || "unknown",
-                browser_family: result.browser.name || "unknown",
-                os_family: result.os.name || "unknown",
-                os_version: result.os.version || "unknown",
-                token: sessionToken + user.id,
-            }
-        })
-        return res.status(200).send({access_token: session.token});
+router.post(`/signin`, loginValidation, async (req, res) => {
+    const [user, userErr] = await safeAwait(prisma.user.findUnique({
+        where: {
+            email: req.body.email,
+        },
+    }))
+    if (!user) return res.status(404).send("User not found");
+    if (userErr) return res.status(409).send("An error occurred")
+    const [validPassword, validPassError] = await safeAwait(verifyPassword(req.body.password, user.password));
+    if (validPassError) return res.status(409).send("Unable to verify password")
+    if (!validPassword) return res.status(403).send("Password is incorrect");
+    if (!user.isVerified) return res.status(401).send("Please verify your email first");
+    const myParser = new parser();
+    myParser.setUA(req.headers["user-agent"]);
+    const result = myParser.getResult();
+    const sessionToken = randomstring.generate(240);
+    const [session, sessionErr] = await safeAwait(prisma.userSession.create({
+        data: {
+            userId: user.id,
+            createdAt: new Date(),
+            userAgent: result.ua || "unknown",
+            ipv4Address: req.headers["x-forwarded-for"] || req.socket.remoteAddress,
+            ipv6Address: req.headers["x-forwarded-for"] || req.socket.remoteAddress,
+            device_model: result.device.type + "-" + result.device.vendor + "-" + result.device.model || "unknown",
+            browser_version: result.browser.version || "unknown",
+            browser_family: result.browser.name || "unknown",
+            os_family: result.os.name || "unknown",
+            os_version: result.os.version || "unknown",
+            token: sessionToken + user.id,
+        }
+    }));
+    if (sessionErr) return res.status(409).send("unable to login")
+    return res.status(200).send({access_token: session.token});
 })
 
 // manually resend verification to registered user
-router.post("/sendemailverification", async (req, res) => {
+router.post("/send-mail-verification", async (req, res) => {
     const mail = req.body.email;
     const user = await prisma.user.findUnique({
         where: {
@@ -120,11 +103,11 @@ router.post("/sendemailverification", async (req, res) => {
         },
     });
     if (!user) return res.status(404).send("User not Found");
-    const validPassword = await verifyPassword(req.body.password, result.password)
+    const validPassword = await verifyPassword(req.body.password, user.password)
     if (!validPassword) return res.status(401).send("Not Authorized");
     if (user.isVerified) return res.send("User is already Verified");
-    sendVerification(user.name, user.email, user.emailToken)
-        .then(() => res.status(200).send("Verification Email sent"));
+    const [e, emailErr] = await safeAwait(sendVerification(user.name,user.email, user.emailToken));
+    return emailErr ? res.status(409).send("unable to send verification\n"+emailErr) : res.send("verification code sent")
 });
 
 //System admin can make another user system admin
