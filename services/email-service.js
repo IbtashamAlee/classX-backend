@@ -13,7 +13,6 @@ class EmailService {
             };
             sgMail.send(msg).then((res) => {
                 console.log('Account verification email sent');
-                console.log(res);
                 resolve(res);
             }).catch((error) => {
                 reject(error);
