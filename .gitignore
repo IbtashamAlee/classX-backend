@@ -119,4 +119,6 @@ dist
 .pnp.*
 sendgrid.env
 
+prisma/migrations/
 prisma/migrations
+prisma/migrations/*
