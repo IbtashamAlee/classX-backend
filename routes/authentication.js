@@ -14,17 +14,15 @@ const resetPassword = EmailService.resetPassword;
 const safeAwait = require('../services/safe_await');
 
 router.post(`/signup`, signupValidation, async (req, res) => {
-    let [pass, passErr] = await safeAwait(encryptPassword(req.body.password));
-    const emailVerificationToken = randomstring.generate(64);
-    const [user, userErr] = await safeAwait(
+    let [pass] = await safeAwait(encryptPassword(req.body.password));
+    const [user] = await safeAwait(
         prisma.user.findUnique({
             where: {
                 email: req.body.email
             }
         }))
     if (user) return res.send("user already exists");
-    const [e, emailErr] = await safeAwait(sendVerification(req.body.name, emailVerificationToken));
-    if (emailErr) return res.status(200).send("unable to create user")
+    const emailVerificationToken = randomstring.generate(64);
     const [newUser, newUserErr] = await safeAwait(prisma.user.create({
         data: {
             name: req.body.name,
@@ -35,21 +33,25 @@ router.post(`/signup`, signupValidation, async (req, res) => {
         },
     }));
     if (newUserErr) return res.status(409).send("unable to create user");
+    const [_, emailErr] = await safeAwait(sendVerification(req.body.name, newUser.email, emailVerificationToken, newUser.id));
+    if (emailErr) return res.status(200).send("user created successfully.unable to send email try again")
     return res.status(200).send("user created successfully");
 });
 
 
 //This route processes user request for email verification
 router.get("/mail-verify/:token", async (req, res) => {
-    const [userSession, userSessionErr] = await safeAwait(prisma.userSession.findUnique({
+    const userId = req.params.token.split('=')[1];
+    const [user, userErr] = await safeAwait(prisma.user.findUnique({
         where: {
-            token: req.params.token,
+            id: parseInt(userId)
         },
     }));
-    if (!userSession) return res.status(400).send("invalid verification token.")
+    if (!user) return res.status(400).send("invalid verification token.")
+    if (user.isVerified) return res.send("user already verified")
     const [updatedUser, updatedUserErr] = await safeAwait(prisma.user.update({
         where: {
-            id: userSession.userId,
+            id: parseInt(userId),
         }, data: {
             isVerified: true,
         },
@@ -106,8 +108,8 @@ router.post("/send-mail-verification", async (req, res) => {
     const validPassword = await verifyPassword(req.body.password, user.password)
     if (!validPassword) return res.status(401).send("Not Authorized");
     if (user.isVerified) return res.send("User is already Verified");
-    const [e, emailErr] = await safeAwait(sendVerification(user.name,user.email, user.emailToken));
-    return emailErr ? res.status(409).send("unable to send verification\n"+emailErr) : res.send("verification code sent")
+    const [e, emailErr] = await safeAwait(sendVerification(user.name, user.email, user.emailToken, user.id));
+    return emailErr ? res.status(409).send("unable to send verification\n" + emailErr) : res.send("verification code sent")
 });
 
 //System admin can make another user system admin
