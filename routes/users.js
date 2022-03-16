@@ -47,6 +47,24 @@ router.put("/unblock/:id", verifyUser, verifySystemAdmin, async (req, res) => {
     }
 });
 
+router.get("/getclasses", verifyUser, async (req, res) => {
+     let classes = await prisma.class.findMany({
+        include: {
+            classParticipants: {
+                where:{
+                    userId : parseInt(req.user.id)
+                }
+            }
+        }
+    });
+    classes = await classes.filter((c)=>{
+        return c.classParticipants.filter(cp =>{
+           return cp.userId = parseInt(req.user.id)
+        })
+    })
+    return res.send(classes)
+})
+
 //endpoint to get a particular user
 router.get("/:id", verifyUser, verifySystemAdmin, async (req, res) => {
     const users = await prisma.user.findUnique({
@@ -56,5 +74,6 @@ router.get("/:id", verifyUser, verifySystemAdmin, async (req, res) => {
     });
     return res.status(200).json(users);
 });
+
 
 module.exports = router;

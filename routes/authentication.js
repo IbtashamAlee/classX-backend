@@ -15,8 +15,7 @@ const resetPassword = EmailService.resetPassword;
 //This is route for user signup, and it validates the user data
 router.post(`/signup`, signupValidation, async (req, res) => {
     let pass = await encryptPassword(req.body.password);
-    const EMAIL_VERIFICATION_TOKEN = randomstring.generate(64);
-
+    const emailVerificationToken = randomstring.generate(64);
     prisma.user.findUnique({
         where: {
             email: req.body.email
@@ -25,14 +24,14 @@ router.post(`/signup`, signupValidation, async (req, res) => {
         if (user) {
             res.status(409).send("User already exists.");
         } else {
-            sendVerification(req.body.name, req.body.email, EMAIL_VERIFICATION_TOKEN).then(() => {
+            sendVerification(req.body.name, req.body.email, emailVerificationToken).then(() => {
                 prisma.user.create({
                     data: {
                         name: req.body.name,
                         email: req.body.email,
                         password: pass,
                         createdAt: new Date(),
-                        emailToken: EMAIL_VERIFICATION_TOKEN,
+                        emailToken: emailVerificationToken,
                     },
                 }).then(user => {
                     if (user) {
@@ -41,7 +40,7 @@ router.post(`/signup`, signupValidation, async (req, res) => {
                         res.status(409);
                     }
                 }).catch(err => {
-                    res.status(400).send("Unable to create user. User might already exists");
+                    res.status(400).send("Unable to create user");
                 })
             }).catch(err => {
                 res.status(409).send("Unable to create user and could not send verification code");
@@ -78,7 +77,6 @@ router.get("/mail-verify/:id", async (req, res) => {
 
 //This is route for user login
 router.post(`/login`, loginValidation, async (req, res) => {
-    try {
         const user = await prisma.user.findUnique({
             where: {
                 email: req.body.email,
@@ -108,9 +106,6 @@ router.post(`/login`, loginValidation, async (req, res) => {
             }
         })
         return res.status(200).send({access_token: session.token});
-    } catch (e) {
-        res.send(e);
-    }
 })
 
 // manually resend verification to registered user

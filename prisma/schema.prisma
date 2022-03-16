@@ -24,6 +24,8 @@ model User {
   emailToken String? @db.VarChar(255)
   resetToken String? @db.VarChar(255)
   deletedAt DateTime? @db.Timestamptz(6)
+  emailTokenGen DateTime? @db.Timestamptz(6)
+  resetTokenGen DateTime? @db.Timestamptz(6)
   institutes Institute[]
   departments Department[]
   file File[]

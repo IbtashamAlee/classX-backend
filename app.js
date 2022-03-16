@@ -21,7 +21,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 app.use('/', indexRouter);
 app.use('/users', usersRouter);
-app.use('/authentication', authenticationRouter);
+app.use('/auth', authenticationRouter);
 app.use('/institutes', instituteRouter);
 app.use('/departments', departmentRouter);
 app.use('/file', fileRouter)
