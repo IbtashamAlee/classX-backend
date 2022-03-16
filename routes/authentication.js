@@ -76,6 +76,7 @@ router.get("/mail-verify/:id", async (req, res) => {
 });
 
 //This is route for user login
+// todo: rename login to signin
 router.post(`/login`, loginValidation, async (req, res) => {
         const user = await prisma.user.findUnique({
             where: {
@@ -90,6 +91,8 @@ router.post(`/login`, loginValidation, async (req, res) => {
         myParser.setUA(req.headers["user-agent"]);
         const result = myParser.getResult();
         const sessionToken = randomstring.generate(240);
+
+        // todo: fix this particular part of code
         const session = await prisma.userSession.create({
             data: {
                 userId: user.id,
