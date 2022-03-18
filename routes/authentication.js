@@ -30,6 +30,7 @@ router.post(`/signup`, signupValidation, async (req, res) => {
             password: pass,
             createdAt: new Date(),
             emailToken: emailVerificationToken,
+            emailTokenGen: new Date()
         },
     }));
     if (newUserErr) return res.status(409).send("unable to create user");
@@ -41,7 +42,9 @@ router.post(`/signup`, signupValidation, async (req, res) => {
 
 //This route processes user request for email verification
 router.get("/mail-verify/:token", async (req, res) => {
-    const userId = req.params.token.split('=')[1];
+    const temp = req.params.token.split('=');
+    const userId = temp[1];
+    const token = temp[0];
     const [user] = await safeAwait(prisma.user.findUnique({
         where: {
             id: parseInt(userId)
@@ -49,13 +52,18 @@ router.get("/mail-verify/:token", async (req, res) => {
     }));
     if (!user) return res.status(400).send("invalid verification token.")
     if (user.isVerified) return res.send("user already verified")
+    if (!(user.emailToken === token)) return res.status(409).send("invalid token");
+    //check if code is generated within 48 hrs
+    if (!(parseInt(new Date() - user.emailTokenGen) < (48 * 60 * 60 * 1000)))
+        return res.status(409).send("verification code expired. Please try again");
     const [, updatedUserErr] = await safeAwait(prisma.user.update({
         where: {
             id: parseInt(userId),
         }, data: {
             isVerified: true,
+            emailToken: null
         },
-    }))
+    }));
     if (updatedUserErr) return res.status(409).send("unable to verify.Please try again")
     return res.send("user verified successfully.")
 });
@@ -98,6 +106,7 @@ router.post(`/signin`, loginValidation, async (req, res) => {
 
 // manually resend verification to registered user
 router.post("/send-mail-verification", async (req, res) => {
+    if (!req.body.email) return res.status(404).send("email not provided");
     const mail = req.body.email;
     const [user, userErr] = await safeAwait(prisma.user.findUnique({
         where: {
@@ -106,10 +115,21 @@ router.post("/send-mail-verification", async (req, res) => {
     }))
     if (!user) return res.status(404).send("User not Found");
     if (userErr) return res.status(409).send("unable to find user");
-    const validPassword = await verifyPassword(req.body.password, user.password)
-    if (!validPassword) return res.status(401).send("Not Authorized");
+    // const validPassword = await verifyPassword(req.body.password, user.password)
+    // if (!validPassword) return res.status(401).send("Not Authorized");
     if (user.isVerified) return res.send("User is already Verified");
-    const [, emailErr] = await safeAwait(sendVerification(user.name, user.email, user.emailToken, user.id));
+    const token = randomstring.generate(64)
+    const [, updatedUserErr] = await safeAwait(prisma.user.update({
+        where: {
+            email: mail,
+        },
+        data: {
+            emailToken: token,
+            emailTokenGen: new Date()
+        }
+    }))
+    const [, emailErr] = await safeAwait(sendVerification(user.name, user.email, token, user.id));
+    if (updatedUserErr) return res.status(409).send("unable to send verification");
     return emailErr ? res.status(409).send({
         message: "unable to send verification",
         err: emailErr
@@ -163,7 +183,7 @@ router.get("/sessions", verifyUser, async (req, res) => {
             userId: req.user.id,
         },
     }))
-    if(!sessions || sessionErr) return res.send("unable to fetch sessions");
+    if (!sessions || sessionErr) return res.send("unable to fetch sessions");
     res.send(sessions);
 })
 
@@ -203,8 +223,8 @@ router.post("/password-reset/:token", async (req, res) => {
         },
     }))
     if (!user || userErr) return res.status(404).send("unable to find user");
-    //check if code is generated within 24 hrs
     if (!(user.resetToken === token)) return res.status(409).send("invalid token");
+    //check if code is generated within 24 hrs
     if (!(parseInt(new Date() - user.resetTokenGen) < (24 * 60 * 60 * 1000)))
         return res.status(409).send("Password Reset Token has expired. Please try again");
     const [updatedUser, updatedErr] = await safeAwait(prisma.user.update({
