@@ -128,8 +128,8 @@ model Class{
   id Int @id @default(autoincrement())
   name  String @db.VarChar(255)
   description String?
-  department Department @relation(fields: [departmentId], references: [id])
-  departmentId Int
+  department Department? @relation(fields: [departmentId], references: [id])
+  departmentId Int?
   code String @db.VarChar(16) @unique
   deletedAt DateTime? @db.Timestamptz(6)
   classParticipants ClassParticipants[]
