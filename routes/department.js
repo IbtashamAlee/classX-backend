@@ -69,7 +69,7 @@ router.post('/:id/add-class', verifyUser, async (req, res) => {
             name: req.body.name,
             description: req.body.description,
             departmentId: parseInt(req.params.id),
-            code: randomstring.generate(5),
+            code: randomstring.generate(12),
         }
     })
     const updatedClass = await prisma.class.update({
