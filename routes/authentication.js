@@ -21,7 +21,7 @@ router.post(`/signup`, signupValidation, async (req, res) => {
                 email: req.body.email
             }
         }))
-    if (user) return res.send("user already exists");
+    if (user) return res.status(409).send("user already exists");
     const emailVerificationToken = randomstring.generate(64);
     const [newUser, newUserErr] = await safeAwait(prisma.user.create({
         data: {
