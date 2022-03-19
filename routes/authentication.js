@@ -188,13 +188,13 @@ router.get("/sessions", verifyUser, async (req, res) => {
 })
 
 router.post('/password-reset', async (req, res) => {
-    if (!req.body.email) return res.send("email not provided");
+    if (!req.body.email) return res.status(403).send("Email not provided");
     const [user, userErr] = await safeAwait(prisma.user.findUnique({
         where: {
             email: req.body.email
         }
     }));
-    if (!user || userErr) return res.status(404).send("user not found");
+    if (!user || userErr) return res.status(404).send("User not found");
     const token = randomstring.generate((64));
     const [updatedUser, updatedErr] = await safeAwait(prisma.user.update({
         where: {
@@ -205,9 +205,9 @@ router.post('/password-reset', async (req, res) => {
             resetTokenGen: new Date()
         }
     }))
-    if (updatedErr) return res.status(409).send("unable to genereate reset code")
+    if (updatedErr) return res.status(409).send("Unable to generate reset code")
     const [, resetMailErr] = await safeAwait(resetPassword(user.name, user.email, token, user.id));
-    if (resetMailErr) return res.status(409).send("unable to send password reset email")
+    if (resetMailErr) return res.status(409).send("Unable to send password reset email")
     return res.send(updatedUser);
 })
 
