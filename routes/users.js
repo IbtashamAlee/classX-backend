@@ -8,7 +8,8 @@ const safeAwait = require('../services/safe_await');
 
 //endpoint to get all users
 router.get("/", verifyUser, verifySystemAdmin, async (req, res) => {
-    const users = await prisma.user.findMany();
+    const [users, userErr] = await safeAwait(prisma.user.findMany());
+    if (userErr) return res.status(409).send("unable to fetch users");
     return res.status(200).json(users);
 });
 
@@ -19,22 +20,86 @@ router.get("/me", verifyUser, async (req, res) => {
 });
 
 // This endpoint returns all the classes of user with his embedded roles.
-router.get("/me/getclasses", verifyUser, async (req, res) => {
-    const[classes,classesErr]= await safeAwait(prisma.$queryRaw`
-    select "Class".name, "Class".description,"Department".name,"Institute".name,"ClassParticipants"."classId",
-        (Select "Role".name from "Role" INNER JOIN "UserRole" ON
-        "Role".id = "UserRole"."roleId"
-        Where "Role"."classId" = "Class".id AND "userId" = ${req.user.id} LIMIT 1)
-        as role from "Class"
-        INNER JOIN "ClassParticipants" ON "Class".id = "ClassParticipants"."classId" AND "ClassParticipants"."userId"=${req.user.id}
-        LEFT JOIN "Department" ON
-        "Class"."departmentId" = "Department".id
-        LEFT JOIN "Institute" ON
-        "Department"."instituteId" = "Institute".id
+router.get("/me/classes", verifyUser, async (req, res) => {
+    const [classes, classesErr] = await safeAwait(prisma.$queryRaw`
+        Select "Class".name,
+               "Class".description,
+               "Department".name,
+               "Institute".name,
+               "ClassParticipants"."classId",
+               (Select "Role".name
+                from "Role"
+                         INNER JOIN "UserRole" ON
+                    "Role".id = "UserRole"."roleId"
+                Where "Role"."classId" = "Class".id
+                  AND "userId" = ${req.user.id} LIMIT 1)
+        as role
+        from "Class"
+            INNER JOIN "ClassParticipants"
+        ON "Class".id = "ClassParticipants"."classId" AND "ClassParticipants"."userId"=${req.user.id}
+            LEFT JOIN "Department" ON
+            "Class"."departmentId" = "Department".id
+            LEFT JOIN "Institute" ON
+            "Department"."instituteId" = "Institute".id
         ORDER BY "Institute".id
     `)
-    if(classesErr) return res.send({message:'Unable to fetch classes',err:classesErr});
+    //todo: Check if user is Institute Admin or Department Admin and return the values accordingly
+    if (classesErr) return res.send({message: 'Unable to fetch classes', err: classesErr});
     return res.json(classes)
+})
+
+router.get("/me/roles", verifyUser, async (req, res) => {
+    let role_arr = []
+    let [roles, roleErr] = await safeAwait(prisma.role.findMany({
+        include: {
+            userRole: {
+                where: {
+                    userId: req.user.id
+                }
+            }
+        }
+    }));
+    if (!roles) return res.status(404).send("no current roles for this user");
+    if (roleErr) return res.status(409).send("unable to fetch roles");
+    roles
+        .filter((r) => r.userRole.length > 0)
+        .map(r => {
+            const name = r.name.split('_')[0];
+            if (!role_arr.includes(name))
+                role_arr.push(name)
+        })
+    return res.send(role_arr);
+});
+
+//get all classes for certain department admin
+router.get('/me/get-department-classes', verifyUser, async (req, res) => {
+    const [classes,classesErr] = await safeAwait(prisma.department.findMany({
+        where:{
+            adminId : req.user.id
+        },
+        include:{
+            class: true
+        },
+    }))
+    if(classesErr) return res.status(409).send("Unable to get classes");
+    return res.send(classes);
+})
+
+router.get('/me/get-institute-classes',verifyUser,async(req, res)=>{
+    const [classes,classesErr] = await safeAwait(prisma.institute.findMany({
+        where:{
+            adminId : req.user.id
+        },
+        include:{
+            departments:{
+                include:{
+                    class : true
+                }
+            }
+        }
+    }))
+    if(classesErr) return res.send(409).send("unable to fetch classes");
+    return res.send(classes);
 })
 
 router.put("/block/:id", verifyUser, verifySystemAdmin, async (req, res) => {
@@ -79,3 +144,44 @@ router.get("/:id", verifyUser, verifySystemAdmin, async (req, res) => {
 
 
 module.exports = router;
+
+//todo :
+// TEST CODE . DONT REMOVE
+// let departments = [];
+// let [departmentRole, departmentRoleErr] = await safeAwait(prisma.role.findMany({
+//     where: {
+//         name: {
+//             contains: "DepartmentAdmin"
+//         }
+//     },
+//     include: {
+//         userRole: {
+//             where: {
+//                 userId: req.user.id
+//             }
+//         },
+//     }
+// }));
+// if (departmentRoleErr) return res.status(409).send("unable to fetch department role");
+// if (!departmentRole) return res.status(404).send("no department role found against current user");
+// departmentRole
+//     .filter(r => r.userRole.length > 0)
+//     .map(d => departments.push(d.departmentId));
+// const promises = departments.map(d => {
+//     return prisma.class.findMany({
+//         where: {
+//             departmentId: d
+//         },
+//         include: {
+//             department: {
+//                 select: {
+//                     name: true,
+//                     instituteId: true
+//                 }
+//             }
+//         }
+//     })
+// })
+// let [classes, classesErr] = await safeAwait(Promise.all(promises));
+// if (classesErr) return res.status(409).send("unable to get classes");
+// return res.send(classes)

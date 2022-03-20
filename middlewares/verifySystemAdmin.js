@@ -1,20 +1,20 @@
 const {PrismaClient} = require("@prisma/client");
 const prisma = new PrismaClient();
+const safeAwait  = require('../services/safe_await');
 
 async function verifySystemAdmin(req, res, next) {
     const user = req.user;
-    const role = await prisma.role.findMany({
+    const [role,roleErr] = await safeAwait(prisma.role.findUnique({
         where: {
             name: "SystemAdmin",
         }
-    });
-    if (role.length > 0) {
-        const verifiedRole = user.userRole.filter(t => {
-            return t.roleId === role[0].id
-        })
-        verifiedRole.length > 0 ? next() : res.status(401).send("unauthorized")
-    } else
-        return res.status(404).send("Admin Role does not exist.")
+    }));
+    if(roleErr) return res.status(409).send("unable to fetch System Admin Role")
+    if(!role) return res.status(404).send("role not found");
+    const verifiedRole = user.userRole.filter(t => {
+            return t.roleId === role.id
+    })
+    verifiedRole.length > 0 ? next() : res.status(401).send("unauthorized");
 }
 
 module.exports.verifySystemAdmin = verifySystemAdmin;
