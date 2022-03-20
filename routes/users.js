@@ -73,48 +73,77 @@ router.get("/me/roles", verifyUser, async (req, res) => {
 
 //get all classes for certain department admin
 router.get('/me/get-department-classes', verifyUser, async (req, res) => {
-    const [classes,classesErr] = await safeAwait(prisma.department.findMany({
-        where:{
-            adminId : req.user.id
+    const [classes, classesErr] = await safeAwait(prisma.department.findMany({
+        where: {
+            adminId: req.user.id
         },
-        include:{
+        include: {
             class: true
         },
     }))
-    if(classesErr) return res.status(409).send("Unable to get classes");
+    if (classesErr) return res.status(409).send("Unable to get classes");
     return res.send(classes);
 })
 
-router.get('/me/get-institute-classes',verifyUser,async(req, res)=>{
-    const [classes,classesErr] = await safeAwait(prisma.institute.findMany({
-        where:{
-            adminId : req.user.id
+router.get('/me/get-institute-classes', verifyUser, async (req, res) => {
+    const [classes, classesErr] = await safeAwait(prisma.institute.findMany({
+        where: {
+            adminId: req.user.id
         },
-        include:{
-            departments:{
-                include:{
-                    class : true
+        include: {
+            departments: {
+                include: {
+                    class: true
                 }
             }
         }
     }))
-    if(classesErr) return res.send(409).send("unable to fetch classes");
+    if (classesErr) return res.send(409).send("unable to fetch classes");
     return res.send(classes);
 })
 
 router.put("/block/:id", verifyUser, verifySystemAdmin, async (req, res) => {
-    try {
-        const user = await prisma.user.update({
+        if(parseInt(req.params.id) === req.user.id) return res.status(403).send("can't block yourself");
+        const [user,userErr] =await safeAwait(prisma.user.findUnique({
             where: {
                 id: parseInt(req.params.id),
-            }, data: {
-                deletedAt: new Date(),
             },
-        });
-        return res.status(200).json(user);
-    } catch (e) {
-        return res.status(404).send("User not found");
-    }
+            include: {
+                userRole: {
+                    include: {
+                        role: {
+                            include: {
+                                rolePermission: true
+                            }
+                        }
+                    }
+                }
+            }
+        }))
+        if(userErr) return res.status(409).send("unable to fetch user");
+        if(!user) return res.status(404).send("user not found");
+        const [Adminrole,AdminroleErr] = await safeAwait(prisma.role.findUnique({
+        where: {
+            name: "SystemAdmin",
+        }
+        }));
+        if(!AdminroleErr && Adminrole) {
+            const hasAdminRole = user.userRole.filter(t => {
+                return t.roleId === Adminrole.id
+            })
+            if(hasAdminRole.length > 0)
+            return res.status(403).send("User is System Admin.Not permitted to block this User.");
+        }
+        const [updatedUser,updateErr] = await safeAwait(prisma.user.update({
+            where:{
+                id: user.id
+            },
+            data:{
+                deletedAt:new Date()
+            }
+        }))
+        if(updateErr) return res.send(409).send("unable to block user's access");
+        return res.send(updatedUser);
 });
 
 router.put("/unblock/:id", verifyUser, verifySystemAdmin, async (req, res) => {
