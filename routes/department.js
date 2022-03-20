@@ -9,6 +9,8 @@ const randomstring = require("randomstring");
 const StudentPermissions = require('../permissions/student.json');
 const TeacherPermissions = require('../permissions/teacher.json');
 const DepartmentAdminPermissions = require('../permissions/departmentAdmin.json');
+const safeAwait = require('../services/safe_await');
+const {nanoid} = require('nanoid/async');
 
 router.get('/', verifyUser, verifySystemAdmin, async (req, res) => {
     const departments = await prisma.department.findMany();
@@ -26,6 +28,7 @@ router.get('/:id', verifyUser, verifySystemAdmin, async (req, res) => {
 
 router.post('/:id/add-admin', verifyUser, async (req, res) => {
     const isPermitted = await checkPermission(req.user, '07_' + req.params.id);
+    console.log(req.user, '07_' + req.params.id)
     const department = await prisma.department.findUnique({
         where: {
             id: parseInt(req.params.id)
@@ -62,25 +65,33 @@ router.post('/:id/add-admin', verifyUser, async (req, res) => {
 })
 
 router.post('/:id/add-class', verifyUser, async (req, res) => {
+    if (!req.body.name) return res.status(409).send('class name not provided')
+    const className = req.body.name.trim();
+    const [existingClass, ERR] = await safeAwait(prisma.class.findUnique({
+        where: {
+            name_departmentId: {
+                name: className,
+                departmentId: parseInt(req.params.id)
+            },
+        }
+    }))
+    if (existingClass && existingClass.departmentId === parseInt(req.params.id))
+        return res.status(409).send("a class with same name already exists in this department");
     const isPermitted = await checkPermission(req.user, '15_' + req.params.id);
-    if (!isPermitted) return res.status(403).send("not permitted")
-    const newClass = await prisma.class.create({
+    if (!isPermitted) return res.status(403).send("not authorized");
+
+    const [newClass, newClassErr] = await safeAwait(prisma.class.create({
         data: {
-            name: req.body.name,
-            description: req.body.description,
+            name: className,
+            description: req.body.description || '',
             departmentId: parseInt(req.params.id),
-            code: randomstring.generate(12),
+            code: await nanoid(),
         }
-    })
-    const updatedClass = await prisma.class.update({
-        where: {
-            id: newClass.id,
-        },
-        data: {
-            code: newClass.code + newClass.id
-        }
-    })
-    const teacherRole = await prisma.role.upsert({
+    }));
+
+    if (newClassErr || !newClass) return res.status(409).send("unable to create class");
+
+    const [teacherRole, teacherRoleErr] = await safeAwait(prisma.role.upsert({
         where: {
             name: 'Teacher_' + newClass.id,
         },
@@ -90,8 +101,10 @@ router.post('/:id/add-class', verifyUser, async (req, res) => {
             classId: newClass.id,
             departmentId: parseInt(req.params.id)
         }
-    })
-    const studentRole = await prisma.role.upsert({
+    }))
+    if (!teacherRole || teacherRoleErr) return res.status(409).send("unable to generate teacher's role");
+
+    const [studentRole, studentRoleErr] = await safeAwait(prisma.role.upsert({
         where: {
             name: 'Teacher_' + newClass.id,
         },
@@ -101,15 +114,19 @@ router.post('/:id/add-class', verifyUser, async (req, res) => {
             classId: newClass.id,
             departmentId: parseInt(req.params.id)
         }
-    })
-    const departmentAdmin = await prisma.role.findUnique({
+    }))
+    if (!studentRole || studentRoleErr) return res.status(409).send("unable to generate student's role");
+
+
+    const [departmentAdmin, departmentAdminErr] = await safeAwait(prisma.role.findUnique({
         where: {
             name: 'DepartmentAdmin_' + req.params.id
         }
-    })
+    }))
+    if (!departmentAdmin || departmentAdminErr) return res.status(409).send("unable to find department admin's role")
 
     //Generating permission for student role
-    await StudentPermissions.permissions.map(async per => {
+    for await (const per of StudentPermissions.permissions) {
         const permission = await prisma.permission.upsert({
             where: {
                 code: per.code + '_' + newClass.id
@@ -126,10 +143,11 @@ router.post('/:id/add-class', verifyUser, async (req, res) => {
                 roleId: studentRole.id
             }
         })
-    });
+    }
+
 
     //Generating permission for teachers role
-    await TeacherPermissions.permissions.map(async per => {
+    for await (const per of TeacherPermissions.permissions) {
         const permission = await prisma.permission.upsert({
             where: {
                 code: per.code + '_' + newClass.id
@@ -146,12 +164,11 @@ router.post('/:id/add-class', verifyUser, async (req, res) => {
                 roleId: teacherRole.id
             }
         })
-    });
+    }
 
     //Generating permission for department admin role
-    await DepartmentAdminPermissions.permissions
-        .filter(p => p.status === 'class')
-        .map(async per => {
+    for await(const per of DepartmentAdminPermissions.permissions) {
+        if (per.status === 'class') {
             const permission = await prisma.permission.upsert({
                 where: {
                     code: per.code + '_' + newClass.id
@@ -168,8 +185,9 @@ router.post('/:id/add-class', verifyUser, async (req, res) => {
                     roleId: departmentAdmin.id
                 }
             })
-        });
+        }
+    }
 
-    return res.send(updatedClass);
+    return res.send(newClass);
 })
 module.exports = router;

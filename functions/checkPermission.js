@@ -12,7 +12,7 @@ async function checkPermission(user, pcode) {
     user.userRole.map(userRole => {
         userRole.role.rolePermission.map(permission => {
             if (userPermission.id === permission.permissionId)
-                isPermitted = true;
+                return isPermitted = true;
         })
     })
     return isPermitted;

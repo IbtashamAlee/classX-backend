@@ -130,7 +130,7 @@ model Class{
   description String?
   department Department? @relation(fields: [departmentId], references: [id])
   departmentId Int?
-  code String @db.VarChar(16) @unique
+  code String @db.VarChar(22) @unique
   deletedAt DateTime? @db.Timestamptz(6)
   classParticipants ClassParticipants[]
   role Role[]
@@ -138,6 +138,7 @@ model Class{
   classPoll ClassPoll[]
   classAssessment ClassAssessment[]
   classAttendance ClassAttendance[]
+  @@unique([name,departmentId])
 }
 
 model ClassParticipants{
