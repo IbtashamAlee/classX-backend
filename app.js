@@ -10,7 +10,7 @@ const authenticationRouter = require('./routes/authentication');
 const instituteRouter = require('./routes/institute');
 const departmentRouter = require('./routes/department');
 const fileRouter = require('./routes/file');
-
+const classRouter = require('./routes/class');
 const app = express();
 
 app.use(logger('dev'));
@@ -24,6 +24,6 @@ app.use('/users', usersRouter);
 app.use('/auth', authenticationRouter);
 app.use('/institutes', instituteRouter);
 app.use('/departments', departmentRouter);
-app.use('/file', fileRouter)
-
+app.use('/file', fileRouter);
+app.use('/class',classRouter);
 module.exports = app;

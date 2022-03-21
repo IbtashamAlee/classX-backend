@@ -106,11 +106,11 @@ router.post('/:id/add-class', verifyUser, async (req, res) => {
 
     const [studentRole, studentRoleErr] = await safeAwait(prisma.role.upsert({
         where: {
-            name: 'Teacher_' + newClass.id,
+            name: 'Student_' + newClass.id,
         },
         update: {},
         create: {
-            name: 'Teacher_' + newClass.id,
+            name: 'Student_' + newClass.id,
             classId: newClass.id,
             departmentId: parseInt(req.params.id)
         }
@@ -188,6 +188,6 @@ router.post('/:id/add-class', verifyUser, async (req, res) => {
         }
     }
 
-    return res.send(newClass);
+    return res.json({message:"explicit permissions generated",newClass});
 })
 module.exports = router;
