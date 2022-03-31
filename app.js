@@ -25,5 +25,5 @@ app.use('/auth', authenticationRouter);
 app.use('/institutes', instituteRouter);
 app.use('/departments', departmentRouter);
 app.use('/file', fileRouter);
-app.use('/class',classRouter);
+app.use('/class', classRouter);
 module.exports = app;
