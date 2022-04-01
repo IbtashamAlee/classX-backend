@@ -13,6 +13,7 @@ const DepartmentAdminPermissions = require("../permissions/departmentAdmin.json"
 
 const prisma = new PrismaClient();
 
+//Get all classes
 router.get('/', verifyUser, verifySystemAdmin, async (req, res) => {
   const [classes, classesErr] = await safeAwait(prisma.class.findMany());
   if (classesErr) return res.status(409).send("unable to fetch classes");
@@ -114,20 +115,8 @@ router.post('/add-class', verifyUser, async (req, res) => {
   })
   return res.json({message: "explicit permissions generated", newClass});
 })
-// endpoint to add participants in a class
-//pass an  array of users
-/*SAMPLE
-* users: [
-    {
-        "email":"faseehahmad00@gmail.com",
-        "role":"Student"
-    },
-    {
-        "email":"test@gmail.com",
-        "role":"Teacher"
-    }
-]
-* */
+
+//Add participants in class
 router.post('/:id/add-participants', verifyUser, async (req, res) => {
   const [findClass, findClassErr] = await safeAwait(prisma.class.findUnique({
     where: {
@@ -213,5 +202,15 @@ router.post('/:id/add-participants', verifyUser, async (req, res) => {
   }
   return res.send({participants_err, unavailable_users, already_participants, added_participants});
 })
+
+//todo
+// 1-Add polls in class
+// 2-Polls Participation
+// 3-Add posts in class
+// 4-Add Attendance in class
+// 5-Mark Attendance for Students
+// 6-Assign Assessment to a class from library
+// 7-Update User Role/Permissions
+// 8-Get class Participants with their roles
 
 module.exports = router;

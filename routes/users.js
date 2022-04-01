@@ -6,20 +6,20 @@ const {PrismaClient} = require("@prisma/client");
 const prisma = new PrismaClient();
 const safeAwait = require('../services/safe_await');
 
-//endpoint to get all users
+//get all users (System Admin)
 router.get("/", verifyUser, verifySystemAdmin, async (req, res) => {
   const [users, userErr] = await safeAwait(prisma.user.findMany());
   if (userErr) return res.status(409).send("unable to fetch users");
   return res.status(200).json(users);
 });
 
-//endpoint to get current user
+//get current user
 router.get("/me", verifyUser, async (req, res) => {
   const {id, name, email, userStatus, imageURL} = req.user;
   return res.status(200).json({id, name, email, userStatus, imageURL});
 });
 
-// This endpoint returns all the classes of user with his embedded roles.
+//return all the classes of user with his embedded roles.
 router.get("/me/classes", verifyUser, async (req, res) => {
   const [classes, classesErr] = await safeAwait(prisma.$queryRaw`
         Select "Class".name,
@@ -48,6 +48,7 @@ router.get("/me/classes", verifyUser, async (req, res) => {
   return res.json(classes)
 })
 
+//get current user roles
 router.get("/me/roles", verifyUser, async (req, res) => {
   let role_arr = []
   let [roles, roleErr] = await safeAwait(prisma.role.findMany({
@@ -85,6 +86,7 @@ router.get('/me/get-department-classes', verifyUser, async (req, res) => {
   return res.send(classes);
 })
 
+//get classes for institute Admin
 router.get('/me/get-institute-classes', verifyUser, async (req, res) => {
   const [classes, classesErr] = await safeAwait(prisma.institute.findMany({
     where: {
@@ -102,6 +104,7 @@ router.get('/me/get-institute-classes', verifyUser, async (req, res) => {
   return res.send(classes);
 })
 
+//block a user
 router.put("/block/:id", verifyUser, verifySystemAdmin, async (req, res) => {
   if (parseInt(req.params.id) === req.user.id) return res.status(403).send("can't block yourself");
   const [user, userErr] = await safeAwait(prisma.user.findUnique({
@@ -146,6 +149,7 @@ router.put("/block/:id", verifyUser, verifySystemAdmin, async (req, res) => {
   return res.send(updatedUser);
 });
 
+//unblock a user
 router.put("/unblock/:id", verifyUser, verifySystemAdmin, async (req, res) => {
   try {
     const user = await prisma.user.update({
@@ -161,7 +165,7 @@ router.put("/unblock/:id", verifyUser, verifySystemAdmin, async (req, res) => {
   }
 });
 
-//endpoint to get a particular user
+//get a particular user
 router.get("/:id", verifyUser, verifySystemAdmin, async (req, res) => {
   const users = await prisma.user.findUnique({
     where: {
@@ -171,46 +175,7 @@ router.get("/:id", verifyUser, verifySystemAdmin, async (req, res) => {
   return res.status(200).json(users);
 });
 
+//todo
+// 1-Add Assessment to user's library
 
 module.exports = router;
-
-//todo :
-// TEST CODE . DONT REMOVE
-// let departments = [];
-// let [departmentRole, departmentRoleErr] = await safeAwait(prisma.role.findMany({
-//     where: {
-//         name: {
-//             contains: "DepartmentAdmin"
-//         }
-//     },
-//     include: {
-//         userRole: {
-//             where: {
-//                 userId: req.user.id
-//             }
-//         },
-//     }
-// }));
-// if (departmentRoleErr) return res.status(409).send("unable to fetch department role");
-// if (!departmentRole) return res.status(404).send("no department role found against current user");
-// departmentRole
-//     .filter(r => r.userRole.length > 0)
-//     .map(d => departments.push(d.departmentId));
-// const promises = departments.map(d => {
-//     return prisma.class.findMany({
-//         where: {
-//             departmentId: d
-//         },
-//         include: {
-//             department: {
-//                 select: {
-//                     name: true,
-//                     instituteId: true
-//                 }
-//             }
-//         }
-//     })
-// })
-// let [classes, classesErr] = await safeAwait(Promise.all(promises));
-// if (classesErr) return res.status(409).send("unable to get classes");
-// return res.send(classes)
