@@ -193,7 +193,7 @@ model ClassPoll{
   statment String
   class Class @relation(fields: [classId], references: [id])
   classId Int
-  deletedAt DateTime @db.Timestamptz(6)
+  deletedAt DateTime? @db.Timestamptz(6)
   pollComments PollComments[]
   pollOptions PollOption[]
 }
