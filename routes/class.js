@@ -203,8 +203,84 @@ router.post('/:id/add-participants', verifyUser, async (req, res) => {
   return res.send({participants_err, unavailable_users, already_participants, added_participants});
 })
 
+//Add poll in class
+router.post('/:id/poll', verifyUser, async (req, res) => {
+  console.log('22_' + req.params.id);
+  const isPermitted = await checkPermission(req.user, '22_' + req.params.id);
+  console.log(isPermitted)
+  if (!isPermitted) return res.status(403).send("not authorized")
+  if (req.body.pollOptions.length < 2) return res.status(409).send("minimum 2 options required");
+  if (!req.body.statment) return res.status(409).send("No statement provided");
+  const [poll, pollErr] = await safeAwait(prisma.classPoll.create({
+    data: {
+      createdBy: req.user.id,
+      startingTime: req.body.time ? req.body.time : new Date(),
+      statment: req.body.statment,
+      classId: parseInt(req.params.id),
+      deletedAt: new Date()
+      //todo remove deleted at after new migration
+    }
+  }));
+  if (pollErr) return res.status(409).send("unable to add poll");
+  for await (const option of req.body.pollOptions) {
+    const opt = await prisma.pollOption.create({
+      data: {
+        pollId: poll.id,
+        option: option,
+        votes: 0,
+      }
+    })
+  }
+  return res.send({poll, pollOption: req.body.pollOptions})
+})
+
+router.get('/poll/:pollId', async (req,res)=>{
+  const [poll,pollErr] = await safeAwait(prisma.classPoll.findUnique({
+    where:{
+      id : parseInt(req.params.pollId)
+    },
+    include:{
+      pollOptions : true,
+      pollComments : true
+    }
+  }))
+  if(pollErr) return res.status(409).send("unable to fetch Poll");
+  return res.send(poll)
+})
+
+//This function is not tested
+router.post('/:class/poll/:id/vote',async (req,res)=>{
+  if(!req.body.selectedOptionId) return res.status(409).send("Option not Provided");
+  const [alreadyParticipated] = await safeAwait(prisma.pollOptionSelection.findUnique({
+    where:{
+        userId_pollOptionId : {
+          userId : req.user.id,
+          pollOptionId : req.body.selectedOptionId
+        }
+    }
+  }))
+  if(alreadyParticipated) return res.status(409).send("Already participated")
+  const [pollOptionSelection,pollSelectionErr] = await safeAwait(prisma.pollOptionSelection.findUnique({
+    data:{
+      userId : req.user.id,
+      pollOptionId: req.body.selectedOptionId
+    }
+  }))
+  if(pollSelectionErr) return res.status(409).send("unable to add option");
+  const [pollOption,pollOptionErr] = await safeAwait(prisms.pollOption.update({
+    where:{
+      id : req.body.selectedOptionId
+    },
+    data:{
+      votes : {increment:1}
+    }
+  }))
+  if(pollOptionErr) return res.status(409).send("unable to cast vote");
+  return res.send("vote casted successfully")
+})
+
 //todo
-// 1-Add polls in class
+// 1-Add polls in class ✓
 // 2-Polls Participation
 // 3-Add posts in class
 // 4-Add Attendance in class

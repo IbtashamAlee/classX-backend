@@ -224,6 +224,7 @@ model PollOptionSelection{
   userId Int
   pollOption PollOption @relation(fields: [pollOptionId], references: [id])
   pollOptionId Int
+  @@unique([userId,pollOptionId])
 }
 
 model Assessment{
