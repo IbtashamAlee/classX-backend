@@ -311,6 +311,14 @@ router.post('/poll/:id/vote', verifyUser, async (req, res) => {
 })
 
 router.post('/poll/:id/comment', verifyUser, async (req, res) => {
+  const [poll, pollErr] = await safeAwait(prisma.classPoll.findUnique({
+    where: {
+      id: parseInt(req.params.id)
+    }
+  }))
+  if(!poll || pollErr) return res.status(409).send("unable to fetch poll . Poll may not exist")
+  const isPermitted = await checkPermission(req.user, '34_' + poll.classId);
+  if (!isPermitted) return res.status(403).send("not authorized")
   const comment = req.body.comment;
   if (!comment) return res.status(409).send("Comment not provided");
   if (comment.trim().length < 1) return res.status(409).send("Empty comments not allowed");
@@ -322,7 +330,6 @@ router.post('/poll/:id/comment', verifyUser, async (req, res) => {
       body: comment.trim()
     }
   }))
-  console.log(pollCommentErr)
   if (pollCommentErr) return res.status(409).send("unable to post comment");
   return res.send({pollComment, message: "comment added successfully"})
 })
