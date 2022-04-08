@@ -15,8 +15,8 @@ async function createSystemAdminRole() {
             name: "SystemAdmin"
         }
     })
-
-    permissions.map(async per => {
+    const str = new Date().getMilliseconds()
+    for await(const per of permissions){
         const permission = await prisma.permission.create({
             data: {
                 name: per.name,
@@ -30,9 +30,8 @@ async function createSystemAdminRole() {
             }
         })
         console.log(rolePermission)
-    })
-
-
+    }
+    console.log(new Date().getMilliseconds() - str)
 }
 
 async function makeSystemAdmin(email) {
@@ -55,13 +54,14 @@ async function makeSystemAdmin(email) {
         })
     } else
         console.log("User not found");
+    return email;
 }
 
 
 createSystemAdminRole().then(() => {
-    makeSystemAdmin("faseehahmad21@gmail.com")
-        .then(() => {
-            console.log("user now has admin previleges");
+    makeSystemAdmin("faseehahmad00@gmail.com")
+        .then((email) => {
+            console.log(email + " user now has admin previleges");
         })
 })
 
