@@ -29,6 +29,10 @@
             "code":"37"
         },
         {
+            "name":"can mark attendance",
+            "code":"39"
+        },
+        {
             "name":"can create a new class",
             "code":"16"
         }

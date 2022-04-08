@@ -322,6 +322,7 @@ model ClassAssessmentComments{
 
 model ClassAttendance{
   id Int @id @default(autoincrement())
+  title String @db.VarChar(255)
   class Class @relation(fields: [classId], references: [id])
   classId Int
   user User @relation(fields: [createdBy], references: [id])
