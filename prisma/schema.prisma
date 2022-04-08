@@ -52,7 +52,7 @@ model UserSession{
   id Int @id @default(autoincrement())
   user User @relation(fields: [userId],references: [id])
   userId Int
-  createdAt DateTime @db.Timestamptz(6)
+  createdAt DateTime? @db.Timestamptz(6)
   userAgent String?
   ipv4Address String @db.VarChar(40)
   ipv6Address String @db.VarChar(40)
@@ -160,7 +160,7 @@ model ClassPost{
   createdAt DateTime @db.Timestamptz(6)
   startingTime DateTime @db.Timestamptz(6)
   body String
-  deletedAt DateTime
+  deletedAt DateTime? @db.Timestamptz(6)
   postAttachments PostAttachments[]
   postComments PostComments[]
 }
@@ -171,7 +171,7 @@ model PostAttachments{
   postId Int
   file File @relation(fields: [fileId], references: [id])
   fileId Int
-  deletedAt DateTime
+  deletedAt DateTime @db.Timestamptz(6)
 }
 
 model PostComments{
@@ -182,7 +182,7 @@ model PostComments{
   userId Int
   createdAt DateTime @db.Timestamptz(6)
   body String
-  deletedAt DateTime
+  deletedAt DateTime? @db.Timestamptz(6)
 }
 
 model ClassPoll{
@@ -196,6 +196,7 @@ model ClassPoll{
   deletedAt DateTime? @db.Timestamptz(6)
   pollComments PollComments[]
   pollOptions PollOption[]
+  pollOptionSelection PollOptionSelection[]
 }
 
 model PollComments{
@@ -206,7 +207,7 @@ model PollComments{
   userId Int
   createdAt DateTime @db.Timestamptz(6)
   body String
-  deletedAt DateTime  @db.Timestamptz(6)
+  deletedAt DateTime?  @db.Timestamptz(6)
 }
 
 model PollOption{
@@ -222,8 +223,11 @@ model PollOptionSelection{
   id Int @id @default(autoincrement())
   user User @relation(fields: [userId], references: [id])
   userId Int
+  classPoll ClassPoll @relation(fields :[pollId] ,references:[id])
+  pollId Int
   pollOption PollOption @relation(fields: [pollOptionId], references: [id])
   pollOptionId Int
+  @@unique([userId,pollId])
 }
 
 model Assessment{
@@ -246,7 +250,7 @@ model Question{
   assessmentId Int
   questionScore Int
   duration Int
-  deletedAt DateTime @db.Timestamptz(6)
+  deletedAt DateTime? @db.Timestamptz(6)
   option Option[]
   questionResponse QuestionResponse[]
   questionAttachment QuestionAttachment[]
@@ -258,7 +262,7 @@ model Option{
   questionId Int
   value String
   is_correct Boolean
-  deletedAt DateTime @db.Timestamptz(6)
+  deletedAt DateTime? @db.Timestamptz(6)
 }
 
 model QuestionResponse{
@@ -296,7 +300,7 @@ model ClassAssessment{
   classId Int
   assessment Assessment @relation(fields: [assessmentId], references: [id])
   assessmentId Int
-  deletedAt DateTime @db.Timestamptz(6)
+  deletedAt DateTime? @db.Timestamptz(6)
   allowResubmission Boolean
   startingTime DateTime @db.Timestamptz(6)
   isMultiTimer Boolean
@@ -313,7 +317,7 @@ model ClassAssessmentComments{
   userId Int
   createdAt DateTime @db.Timestamptz(6)
   body String
-  deletedAt DateTime @db.Timestamptz(6)
+  deletedAt DateTime? @db.Timestamptz(6)
 }
 
 model ClassAttendance{
@@ -325,7 +329,7 @@ model ClassAttendance{
   createdAt DateTime @db.Timestamptz(6)
   startingTime DateTime @db.Timestamptz(6)
   endingTime DateTime @db.Timestamptz(6)
-  deletedAt DateTime @db.Timestamptz(6)
+  deletedAt DateTime? @db.Timestamptz(6)
   attendanceRecord AttendanceRecord[]
 }
 
@@ -343,7 +347,7 @@ model AttendanceRecord{
 model Chat{
   id Int @id @default(autoincrement())
   createdAt DateTime @db.Timestamptz(6)
-  deletedAt DateTime @db.Timestamptz(6)
+  deletedAt DateTime? @db.Timestamptz(6)
   chatParticipants ChatParticipants[]
   chatmessage ChatMessage[]
 }
@@ -354,7 +358,7 @@ model ChatParticipants{
   chatId Int
   user User @relation(fields: [participantId], references: [id])
   participantId Int
-  removedAt DateTime @db.Timestamptz(6)
+  removedAt DateTime? @db.Timestamptz(6)
 }
 
 model ChatMessage{
@@ -365,7 +369,7 @@ model ChatMessage{
   senderId Int
   body String
   timeSent DateTime @db.Timestamptz(6)
-  deletedAt DateTime @db.Timestamptz(6)
+  deletedAt DateTime? @db.Timestamptz(6)
   file File? @relation(fields: [fileId], references: [id])
   fileId Int?
 }

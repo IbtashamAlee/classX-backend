@@ -22,20 +22,14 @@ router.get("/me", verifyUser, async (req, res) => {
 //return all the classes of user with his embedded roles.
 router.get("/me/classes", verifyUser, async (req, res) => {
   const [classes, classesErr] = await safeAwait(prisma.$queryRaw`
-        Select "Class".name,
-               "Class".description,
-               "Department".name,
-               "Institute".name,
-               "ClassParticipants"."classId",
-               (Select "Role".name
-                from "Role"
-                         INNER JOIN "UserRole" ON
-                    "Role".id = "UserRole"."roleId"
-                Where "Role"."classId" = "Class".id
-                  AND "userId" = ${req.user.id} LIMIT 1)
-        as role
-        from "Class"
-            INNER JOIN "ClassParticipants"
+      Select "Class".name as class, "Class".description as description, "Department".name as department,
+             "Institute".name as institute, "ClassParticipants"."classId",
+        (Select "Role".name from "Role" INNER JOIN "UserRole" ON "Role".id = "UserRole"."roleId"
+            Where "Role"."classId" = "Class".id
+            AND "userId" = ${req.user.id} LIMIT 1
+        )
+        as role from "Class"
+        INNER JOIN "ClassParticipants"
         ON "Class".id = "ClassParticipants"."classId" AND "ClassParticipants"."userId"=${req.user.id}
             LEFT JOIN "Department" ON
             "Class"."departmentId" = "Department".id
@@ -43,7 +37,7 @@ router.get("/me/classes", verifyUser, async (req, res) => {
             "Department"."instituteId" = "Institute".id
         ORDER BY "Institute".id
     `)
-  //todo: Check if user is Institute Admin or Department Admin and return the values accordingly
+  console.log(classes)
   if (classesErr) return res.send({message: 'Unable to fetch classes', err: classesErr});
   return res.json(classes)
 })
