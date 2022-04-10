@@ -297,7 +297,7 @@ router.post('/poll/:id/vote', verifyUser, async (req, res) => {
     }
   }))
   if (pollSelectionErr) return res.status(409).send("unable to add option");
-  //increment counter by 1 
+  //increment counter by 1
   const [, pollOptionErr] = await safeAwait(prisma.pollOption.update({
     where: {
       id: req.body.selectedOptionId
@@ -310,13 +310,14 @@ router.post('/poll/:id/vote', verifyUser, async (req, res) => {
   return res.send("vote casted successfully")
 })
 
+//comment on a poll
 router.post('/poll/:id/comment', verifyUser, async (req, res) => {
   const [poll, pollErr] = await safeAwait(prisma.classPoll.findUnique({
     where: {
       id: parseInt(req.params.id)
     }
   }))
-  if(!poll || pollErr) return res.status(409).send("unable to fetch poll . Poll may not exist")
+  if (!poll || pollErr) return res.status(409).send("unable to fetch poll . Poll may not exist")
   const isPermitted = await checkPermission(req.user, '34_' + poll.classId);
   if (!isPermitted) return res.status(403).send("not authorized")
   const comment = req.body.comment;
@@ -334,6 +335,96 @@ router.post('/poll/:id/comment', verifyUser, async (req, res) => {
   return res.send({pollComment, message: "comment added successfully"})
 })
 
+//add attendance in class
+router.post('/:class/attendance', verifyUser, async (req, res) => {
+  const isPermitted = await checkPermission(req.user, '25_' + req.params.class);
+  if (!isPermitted) return res.status(403).send("not authorized")
+  if (!req.body.title) return res.status(409).send("Attendance Title not provided");
+  const [attendance, attendanceErr] = await safeAwait(prisma.classAttendance.create({
+    data: {
+      classId: parseInt(req.params.class),
+      title: req.body.title,
+      createdBy: req.user.id,
+      createdAt: new Date(),
+      startingTime: req.body.startingTime || new Date(),
+      endingTime: req.body.endingTime || new Date(new Date().getTime() + 60 * 60 * 24 * 1000)
+    }
+  }))
+  if (attendanceErr) return res.status(409).send("Unable to add attendance");
+  return res.send(attendance);
+})
+
+//get all attendances in class
+router.get('/:class/attendance', verifyUser, async (req, res) => {
+  const [attendance, attendanceErr] = await safeAwait(prisma.classAttendance.findMany({
+    where: {
+      classId: parseInt(req.params.class)
+    },
+    include: {
+      attendanceRecord: {
+        include: {
+          userSession: {
+            select: {
+              createdAt: false, ipv4Address: true, ipv6Address: true, device_model: true,
+              browser_version: true, browser_family: true, os_family: true, os_version: true,
+            }
+          }
+        }
+      }
+    }
+  }))
+  if (attendanceErr) return res.status(409).send("unable to fetch attendance");
+  return res.send(attendance);
+})
+
+//get specific attendance in class
+router.get('/:class/attendance/:id', verifyUser, async (req, res) => {
+  const [attendance, attendanceErr] = await safeAwait(prisma.classAttendance.findUnique({
+    where: {
+      id: parseInt(req.params.id)
+    },
+    include: {
+      attendanceRecord: {
+        include: {
+          userSession: {
+            select: {
+              createdAt: false, ipv4Address: true, ipv6Address: true, device_model: true,
+              browser_version: true, browser_family: true, os_family: true, os_version: true,
+            }
+          }
+        }
+      }
+    }
+  }))
+  if (!attendance) return res.status(404).send("attendance not found");
+  if (attendanceErr) return res.status(409).send("unable to fetch attendance");
+  return res.send(attendance);
+})
+
+//attendance participation
+router.post('/:class/attendance/:id', verifyUser, async (req, res) => {
+  const isPermitted = await checkPermission(req.user, '39_' + req.params.class);
+  if (!isPermitted) return res.status(403).send("not authorized")
+  const [attendanceRecord] = await safeAwait(prisma.attendanceRecord.findUnique({
+    where: {
+      userId_classAttendanceId: {
+        userId: req.user.id,
+        classAttendanceId: parseInt(req.params.id)
+      }
+    }
+  }))
+  if (attendanceRecord) return res.status(409).send("attendance already marked");
+  const [newAttendanceRecord, newAttendanceRecordErr] = await safeAwait(prisma.attendanceRecord.create({
+    data: {
+      classAttendanceId: parseInt(req.params.id),
+      userId: req.user.id,
+      isPresent: true,
+      userSessionId: req.session
+    }
+  }))
+  if (newAttendanceRecordErr) return res.status(409).send("unable to mark attendance");
+  return res.send(newAttendanceRecord)
+})
 //todo
 // 1-Add polls in class ✓
 // 2-Polls Participation and comments ✓
