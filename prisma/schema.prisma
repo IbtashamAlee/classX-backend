@@ -343,6 +343,7 @@ model AttendanceRecord{
   isPresent Boolean
   userSession UserSession @relation(fields: [userSessionId], references: [id])
   userSessionId Int
+  @@unique ([userId, classAttendanceId])
 }
 
 model Chat{
