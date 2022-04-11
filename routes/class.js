@@ -202,6 +202,10 @@ router.post('/:id/add-participants', verifyUser, async (req, res) => {
   return res.send({participants_err, unavailable_users, already_participants, added_participants});
 })
 
+/*
+* POLLS
+* */
+
 //Add poll in class
 router.post('/:id/poll', verifyUser, async (req, res) => {
   const isPermitted = await checkPermission(req.user, '22_' + req.params.id);
@@ -211,11 +215,13 @@ router.post('/:id/poll', verifyUser, async (req, res) => {
   const [poll, pollErr] = await safeAwait(prisma.classPoll.create({
     data: {
       createdBy: req.user.id,
-      startingTime: req.body.time ? req.body.time : new Date(),
+      startingTime: req.body.startingTime ?? new Date(),
+      endingTime: req.body.endingTime ?? new Date(new Date().getTime() + 60 * 60 * 24 * 1000),
       statment: req.body.statment,
       classId: parseInt(req.params.id)
     }
   }));
+  console.log(pollErr)
   if (pollErr) return res.status(409).send("unable to add poll");
   for await (const option of req.body.pollOptions) {
     const opt = await prisma.pollOption.create({
@@ -278,9 +284,10 @@ router.post('/poll/:id/vote', verifyUser, async (req, res) => {
       },
     }
   }))
-  console.log(poll)
-  //throw err if poll doesnt exist
+  //throw err if poll doesn't exist
   if (!poll || pollErr) return res.send("Unable to fetch poll or poll does not exist");
+  //check if ending time os overed
+  if(new Date() - poll.endingTime > 0 ) return res.status(409).send("unable to vote. Voting time passed")
   //check whether requested option is valid
   if (poll.pollOptions.length < 1) return res.status(409).send("invalid option");
   if (poll.pollOptionSelection.length > 0) return res.status(409).send("already participated")
@@ -318,6 +325,8 @@ router.post('/poll/:id/comment', verifyUser, async (req, res) => {
     }
   }))
   if (!poll || pollErr) return res.status(409).send("unable to fetch poll . Poll may not exist")
+  //check if ending time os overed
+  if(new Date() - poll.endingTime > 0 ) return res.status(409).send("unable to vote. Voting time passed")
   const isPermitted = await checkPermission(req.user, '34_' + poll.classId);
   if (!isPermitted) return res.status(403).send("not authorized")
   const comment = req.body.comment;
@@ -335,6 +344,10 @@ router.post('/poll/:id/comment', verifyUser, async (req, res) => {
   return res.send({pollComment, message: "comment added successfully"})
 })
 
+/*
+* ATTENDANCE
+* */
+
 //add attendance in class
 router.post('/:class/attendance', verifyUser, async (req, res) => {
   const isPermitted = await checkPermission(req.user, '25_' + req.params.class);
@@ -346,8 +359,8 @@ router.post('/:class/attendance', verifyUser, async (req, res) => {
       title: req.body.title,
       createdBy: req.user.id,
       createdAt: new Date(),
-      startingTime: req.body.startingTime || new Date(),
-      endingTime: req.body.endingTime || new Date(new Date().getTime() + 60 * 60 * 24 * 1000)
+      startingTime: req.body.startingTime ?? new Date(),
+      endingTime: req.body.endingTime ?? new Date(new Date().getTime() + 60 * 60 * 24 * 1000)
     }
   }))
   if (attendanceErr) return res.status(409).send("Unable to add attendance");
@@ -425,14 +438,18 @@ router.post('/:class/attendance/:id', verifyUser, async (req, res) => {
   if (newAttendanceRecordErr) return res.status(409).send("unable to mark attendance");
   return res.send(newAttendanceRecord)
 })
+
+/*
+* CLASS POSTS
+* */
 //todo
 // 1-Add polls in class ✓
 // 2-Polls Participation and comments ✓
 // 3-Add posts in class
-// 4-Add Attendance in class
-// 5-Mark Attendance for Students
+// 4-Add Attendance in class ✓
+// 5-Mark Attendance for Students ✓
 // 6-Assign Assessment to a class from library
-// 7-Update User Role/Permissions
+// 7-Update User Role/Permissions x
 // 8-Get class Participants with their roles
 
 module.exports = router;
