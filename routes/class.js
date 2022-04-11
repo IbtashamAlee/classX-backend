@@ -116,7 +116,7 @@ router.post('/add-class', verifyUser, async (req, res) => {
 })
 
 //Add participants in class
-router.post('/:id/add-participants', verifyUser, async (req, res) => {
+router.post('/:id/participants', verifyUser, async (req, res) => {
   const [findClass, findClassErr] = await safeAwait(prisma.class.findUnique({
     where: {
       id: parseInt(req.params.id)
@@ -202,6 +202,68 @@ router.post('/:id/add-participants', verifyUser, async (req, res) => {
   return res.send({participants_err, unavailable_users, already_participants, added_participants});
 })
 
+//Add participants in class
+router.get('/:id/participants', verifyUser, async (req, res) => {
+  const [existingClass, existingClassErr] = await safeAwait(prisma.class.findUnique({
+    where: {
+      id: parseInt(req.params.id)
+    }
+  }))
+  if (existingClassErr || !existingClass) return res.status(409).send("unable to find specified class")
+
+  let [participants, participantsErr] = await safeAwait(prisma.role.findMany({
+    where: {
+      classId: parseInt(req.params.id),
+    },
+    select: {
+      name: true,
+      userRole: {
+        select: {
+          user: {
+            select: {
+              id: true, name: true, userStatus: true, imageURL: true
+            }
+          }
+        }
+      }
+    }
+  }))
+  if (participantsErr) return res.send("unable to fetch participants");
+  if (existingClass.departmentId) {
+    const [participants2, participantsErr2] = await safeAwait(prisma.role.findMany({
+      where: {
+        departmentId: existingClass.departmentId,
+        classId: null
+      },
+      select: {
+        name: true,
+        userRole: {
+          select: {
+            user: {
+              select: {
+                id: true, name: true, userStatus: true, imageURL: true
+              }
+            }
+          }
+        }
+      }
+    }))
+    if (!participantsErr2 && participants2) {
+      console.log(participants)
+      console.log(participants2)
+      participants = participants2.concat(participants)
+    }
+  }
+  console.log(participants)
+  // res.send(participants)
+  res.send(participants.map(p => {
+    const {name, userRole} = p
+    const users = userRole.map(usr => usr.user);
+    return {name, users}
+  }))
+
+})
+
 /*
 * POLLS
 * */
@@ -257,7 +319,6 @@ router.get('/poll/:pollId', async (req, res) => {
       }
     }
   }))
-  console.log(pollErr)
   if (pollErr) return res.status(409).send("unable to fetch Poll");
   return res.send(poll)
 })
@@ -287,7 +348,7 @@ router.post('/poll/:id/vote', verifyUser, async (req, res) => {
   //throw err if poll doesn't exist
   if (!poll || pollErr) return res.send("Unable to fetch poll or poll does not exist");
   //check if ending time os overed
-  if(new Date() - poll.endingTime > 0 ) return res.status(409).send("unable to vote. Voting time passed")
+  if (new Date() - poll.endingTime > 0) return res.status(409).send("unable to vote. Voting time passed")
   //check whether requested option is valid
   if (poll.pollOptions.length < 1) return res.status(409).send("invalid option");
   if (poll.pollOptionSelection.length > 0) return res.status(409).send("already participated")
@@ -326,7 +387,7 @@ router.post('/poll/:id/comment', verifyUser, async (req, res) => {
   }))
   if (!poll || pollErr) return res.status(409).send("unable to fetch poll . Poll may not exist")
   //check if ending time os overed
-  if(new Date() - poll.endingTime > 0 ) return res.status(409).send("unable to vote. Voting time passed")
+  if (new Date() - poll.endingTime > 0) return res.status(409).send("unable to vote. Voting time passed")
   const isPermitted = await checkPermission(req.user, '34_' + poll.classId);
   if (!isPermitted) return res.status(403).send("not authorized")
   const comment = req.body.comment;
