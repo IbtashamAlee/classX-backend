@@ -87,6 +87,11 @@ model Institute {
   adminId Int
   instituteType String @db.VarChar(255)
   deletedAt DateTime? @db.Timestamptz(6)
+  address String?
+  city String? @db.VarChar(255)
+  country String? @db.VarChar(255)
+  description String?
+  imageUrl String? @db.VarChar(255)
   departments Department[]
   role Role[]
 }
@@ -109,6 +114,11 @@ model InstituteRequest{
   instituteType String @db.VarChar(255)
   admin User @relation(fields: [adminId], references: [id])
   adminId Int
+  address String?
+  city String? @db.VarChar(255)
+  country String? @db.VarChar(255)
+  description String?
+  imageUrl String? @db.VarChar(255)
   acceptedAt DateTime? @db.Timestamptz(6)
   rejectedAt DateTime? @db.Timestamptz(6)
   instituteRequestAttachment InstituteRequestAttachment[]
@@ -190,6 +200,7 @@ model ClassPoll{
   user User @relation(fields: [createdBy], references: [id])
   createdBy Int
   startingTime DateTime @db.Timestamptz(6)
+  endingTime DateTime @db.Timestamptz(6)
   statment String
   class Class @relation(fields: [classId], references: [id])
   classId Int
