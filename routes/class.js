@@ -230,7 +230,7 @@ router.get('/:id/participants', verifyUser, async (req, res) => {
   }))
   if (participantsErr) return res.send("unable to fetch participants");
   if (existingClass.departmentId) {
-    const [participants2, participantsErr2] = await safeAwait(prisma.role.findMany({
+    const [departmentAdmin, departmentAdminErr] = await safeAwait(prisma.role.findMany({
       where: {
         departmentId: existingClass.departmentId,
         classId: null
@@ -248,20 +248,14 @@ router.get('/:id/participants', verifyUser, async (req, res) => {
         }
       }
     }))
-    if (!participantsErr2 && participants2) {
-      console.log(participants)
-      console.log(participants2)
-      participants = participants2.concat(participants)
-    }
+    if (!departmentAdminErr && departmentAdmin)
+      participants = departmentAdmin.concat(participants)
   }
-  console.log(participants)
-  // res.send(participants)
   res.send(participants.map(p => {
     const {name, userRole} = p
     const users = userRole.map(usr => usr.user);
     return {name, users}
   }))
-
 })
 
 /*
