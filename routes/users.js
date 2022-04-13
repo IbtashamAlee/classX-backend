@@ -6,11 +6,47 @@ const {PrismaClient} = require("@prisma/client");
 const prisma = new PrismaClient();
 const safeAwait = require('../services/safe_await');
 
+//get public users
+router.get("/public", verifyUser, async (req, res) => {
+  const [users,usersErr] = await safeAwait(prisma.user.findMany({
+    select: {
+      id: true, name: true, userStatus: true, imageURL: true, email: true
+    },
+  }))
+  if(usersErr) return res.status(409).send("unable to fetch users");
+  return res.json(users);
+});
+
+//get a particular public user
+router.get("/public/:id", verifyUser, async (req, res) => {
+  const [user, userErr] = await safeAwait(prisma.user.findUnique({
+    where: {
+      id: parseInt(req.params.id)
+    },
+    select: {
+      id: true, name: true, userStatus: true, imageURL: true, email: true
+    },
+  }));
+  if(userErr) return res.status(409).send("unable to fetch user");
+  return res.json(user);
+});
+
 //get all users (System Admin)
 router.get("/", verifyUser, verifySystemAdmin, async (req, res) => {
   const [users, userErr] = await safeAwait(prisma.user.findMany());
   if (userErr) return res.status(409).send("unable to fetch users");
   return res.status(200).json(users);
+});
+
+//get a particular user (System Admin)
+router.get("/:id", verifyUser, verifySystemAdmin, async (req, res) => {
+  const [user,userErr] = await safeAwait(prisma.user.findUnique({
+    where: {
+      id: parseInt(req.params.id),
+    },
+  }));
+  if(userErr) return res.status(409).send("unable to fetch user")
+  return res.status(200).json(user);
 });
 
 //get current user
@@ -22,22 +58,26 @@ router.get("/me", verifyUser, async (req, res) => {
 //return all the classes of user with his embedded roles.
 router.get("/me/classes", verifyUser, async (req, res) => {
   const [classes, classesErr] = await safeAwait(prisma.$queryRaw`
-      Select "Class".name as class, "Class".description as description, "Department".name as department,
-             "Institute".name as institute, "ClassParticipants"."classId",
-        (Select "Role".name from "Role" INNER JOIN "UserRole" ON "Role".id = "UserRole"."roleId"
-            Where "Role"."classId" = "Class".id
-            AND "userId" = ${req.user.id} LIMIT 1
-        )
-        as role from "Class"
-        INNER JOIN "ClassParticipants"
-        ON "Class".id = "ClassParticipants"."classId" AND "ClassParticipants"."userId"=${req.user.id}
-            LEFT JOIN "Department" ON
-            "Class"."departmentId" = "Department".id
-            LEFT JOIN "Institute" ON
-            "Department"."instituteId" = "Institute".id
-        ORDER BY "Institute".id
-    `)
-  console.log(classes)
+      Select "Class".name        as           class,
+             "Class".description as           description,
+             "Department".name   as           department,
+             "Institute".name    as           institute,
+             "ClassParticipants"."classId",
+             (Select "Role".name
+              from "Role"
+                       INNER JOIN "UserRole" ON "Role".id = "UserRole"."roleId"
+              Where "Role"."classId" = "Class".id
+                AND "userId" = ${req.user.id} LIMIT 1 )
+        as role
+      from "Class"
+          INNER JOIN "ClassParticipants"
+      ON "Class".id = "ClassParticipants"."classId" AND "ClassParticipants"."userId"=${req.user.id}
+          LEFT JOIN "Department" ON
+          "Class"."departmentId" = "Department".id
+          LEFT JOIN "Institute" ON
+          "Department"."instituteId" = "Institute".id
+      ORDER BY "Institute".id
+  `)
   if (classesErr) return res.send({message: 'Unable to fetch classes', err: classesErr});
   return res.json(classes)
 })
@@ -159,17 +199,5 @@ router.put("/unblock/:id", verifyUser, verifySystemAdmin, async (req, res) => {
   }
 });
 
-//get a particular user
-router.get("/:id", verifyUser, verifySystemAdmin, async (req, res) => {
-  const users = await prisma.user.findUnique({
-    where: {
-      id: parseInt(req.params.id),
-    },
-  });
-  return res.status(200).json(users);
-});
-
-//todo
-// 1-Add Assessment to user's library
 
 module.exports = router;

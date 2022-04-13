@@ -68,8 +68,9 @@ model UserSession{
 
 model File{
   id Int @id @default(autoincrement())
-  name String @db.VarChar(255)
-  url String
+  originalName String @db.VarChar(255)
+  key String @db.VarChar(255)
+  publicUrl String
   createdAt DateTime
   uploaded User @relation(fields: [uploadedBy],references: [id])
   uploadedBy Int
