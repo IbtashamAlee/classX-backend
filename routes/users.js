@@ -38,6 +38,12 @@ router.get("/", verifyUser, verifySystemAdmin, async (req, res) => {
   return res.status(200).json(users);
 });
 
+//get current user
+router.get("/me", verifyUser, async (req, res) => {
+  const {id, name, email, userStatus, imageURL} = req.user;
+  return res.status(200).json({id, name, email, userStatus, imageURL});
+});
+
 //get a particular user (System Admin)
 router.get("/:id", verifyUser, verifySystemAdmin, async (req, res) => {
   const [user,userErr] = await safeAwait(prisma.user.findUnique({
@@ -47,12 +53,6 @@ router.get("/:id", verifyUser, verifySystemAdmin, async (req, res) => {
   }));
   if(userErr) return res.status(409).send("unable to fetch user")
   return res.status(200).json(user);
-});
-
-//get current user
-router.get("/me", verifyUser, async (req, res) => {
-  const {id, name, email, userStatus, imageURL} = req.user;
-  return res.status(200).json({id, name, email, userStatus, imageURL});
 });
 
 //return all the classes of user with his embedded roles.
