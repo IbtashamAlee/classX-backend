@@ -8,12 +8,12 @@ const safeAwait = require('../services/safe_await');
 
 //get public users
 router.get("/public", verifyUser, async (req, res) => {
-  const [users,usersErr] = await safeAwait(prisma.user.findMany({
+  const [users, usersErr] = await safeAwait(prisma.user.findMany({
     select: {
       id: true, name: true, userStatus: true, imageURL: true, email: true
     },
   }))
-  if(usersErr) return res.status(409).send("unable to fetch users");
+  if (usersErr) return res.status(409).send("unable to fetch users");
   return res.json(users);
 });
 
@@ -27,7 +27,7 @@ router.get("/public/:id", verifyUser, async (req, res) => {
       id: true, name: true, userStatus: true, imageURL: true, email: true
     },
   }));
-  if(userErr) return res.status(409).send("unable to fetch user");
+  if (userErr) return res.status(409).send("unable to fetch user");
   return res.json(user);
 });
 
@@ -46,12 +46,12 @@ router.get("/me", verifyUser, async (req, res) => {
 
 //get a particular user (System Admin)
 router.get("/:id", verifyUser, verifySystemAdmin, async (req, res) => {
-  const [user,userErr] = await safeAwait(prisma.user.findUnique({
+  const [user, userErr] = await safeAwait(prisma.user.findUnique({
     where: {
       id: parseInt(req.params.id),
     },
   }));
-  if(userErr) return res.status(409).send("unable to fetch user")
+  if (userErr) return res.status(409).send("unable to fetch user")
   return res.status(200).json(user);
 });
 
