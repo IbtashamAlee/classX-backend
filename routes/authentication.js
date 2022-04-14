@@ -36,8 +36,8 @@ router.post(`/signup`, signupValidation, async (req, res) => {
     },
   }));
   if (newUserErr) return res.status(409).send("unable to create user");
-  const [, emailErr] = await safeAwait(sendVerification(req.body.name, newUser.email, emailVerificationToken, newUser.id));
-  if (emailErr) return res.status(200).send("user created successfully.unable to send email try again")
+  sendVerification(req.body.name, newUser.email, emailVerificationToken, newUser.id)
+    .catch();
   return res.status(200).send("user created successfully");
 });
 
