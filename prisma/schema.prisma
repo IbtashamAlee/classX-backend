@@ -182,7 +182,7 @@ model PostAttachments{
   postId Int
   file File @relation(fields: [fileId], references: [id])
   fileId Int
-  deletedAt DateTime @db.Timestamptz(6)
+  deletedAt DateTime? @db.Timestamptz(6)
 }
 
 model PostComments{

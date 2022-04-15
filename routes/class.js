@@ -497,6 +497,119 @@ router.post('/:class/attendance/:id', verifyUser, async (req, res) => {
 /*
 * CLASS POSTS
 * */
+
+//add post in class
+router.post('/:class/post', verifyUser, async (req, res) => {
+  const isPermitted = await checkPermission(req.user, '19_' + req.params.class);
+  if (!isPermitted) return res.status(403).send("not authorized")
+  if (!req.body.content) return res.status(409).send("Post Content not provided");
+  const files = req.body.files.map(file => `{fileId : ${file.id}}`)
+  // return res.send(files)
+  const [post, postErr] = await safeAwait(prisma.classPost.create({
+    data: {
+      classId: parseInt(req.params.class),
+      title: req.body.title,
+      createdBy: req.user.id,
+      createdAt: new Date(),
+      startingTime: req.body.startingTime ?? new Date(),
+      body: req.body.content,
+    }
+  }))
+  if (postErr) return res.status(409).send("Unable to add post");
+  for await (file of req.body.files){
+    await prisma.postAttachments.create({
+      data:{
+        postId : post.id,
+        fileId : file.id
+      }
+    })
+  }
+  return res.send({post,files : req.body.files});
+})
+
+//fetch all posts in class
+router.get('/:id/post', verifyUser, async (req,res) =>{
+  const [posts,postsErr] = await safeAwait(prisma.classPost.findMany({
+    where:{
+      classId : parseInt(req.params.id)
+    },
+    include:{
+      postAttachments : {
+        select:{
+          file : true
+        }
+      },
+      postComments: {
+        select:{
+          user : {
+            select:{
+              id: true, name: true, imageURL : true
+            }
+          },
+          body : true
+        }
+      }
+    }
+  }))
+  if(postsErr) return res.status(409).send("Unable to fetch posts")
+  return res.json(posts)
+})
+
+//fetch particular post in class
+router.get('/post/:id', verifyUser, async (req,res) =>{
+  const [post,postErr] = await safeAwait(prisma.classPost.findUnique({
+    where:{
+      id : parseInt(req.params.id)
+    },
+    include:{
+      postAttachments : {
+        select:{
+          file : true
+        }
+      },
+      postComments: {
+        select:{
+          user : {
+            select:{
+              id: true, name: true, imageURL : true
+            }
+          },
+          body : true
+        }
+      }
+    }
+  }))
+  if(postErr) return res.status(409).send("Unable to fetch post")
+  return res.json(post)
+})
+
+//comment on a poll
+router.post('/post/:id/comment', verifyUser, async (req, res) => {
+  const [post, postErr] = await safeAwait(prisma.classPost.findUnique({
+    where: {
+      id: parseInt(req.params.id)
+    }
+  }))
+  if (!post || postErr) return res.status(409).send("unable to fetch post . Post may not exist")
+  //check if ending time os overed
+  const isPermitted = await checkPermission(req.user, '34_' + post.classId);
+  if (!isPermitted) return res.status(403).send("not authorized")
+  const comment = req.body.comment;
+  if (!comment) return res.status(409).send("Comment not provided");
+  if (comment.trim().length < 1) return res.status(409).send("Empty comments not allowed");
+  const [postComment, postCommentErr] = await safeAwait(prisma.postComments.create({
+    data: {
+      postId: parseInt(req.params.id),
+      userId: req.user.id,
+      createdAt: new Date(),
+      body: comment.trim()
+    }
+  }))
+  console.log(postCommentErr)
+  if (postCommentErr) return res.status(409).send("unable to post comment");
+  return res.send({postComment, message: "comment added successfully"})
+})
+
 //todo
 // 1-Add polls in class ✓
 // 2-Polls Participation and comments ✓
