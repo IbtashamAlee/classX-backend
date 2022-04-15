@@ -202,7 +202,7 @@ router.post('/:id/participants', verifyUser, async (req, res) => {
   return res.send({participants_err, unavailable_users, already_participants, added_participants});
 })
 
-//Add participants in class
+//Get class participants
 router.get('/:id/participants', verifyUser, async (req, res) => {
   const [existingClass, existingClassErr] = await safeAwait(prisma.class.findUnique({
     where: {
@@ -613,11 +613,11 @@ router.post('/post/:id/comment', verifyUser, async (req, res) => {
 //todo
 // 1-Add polls in class ✓
 // 2-Polls Participation and comments ✓
-// 3-Add posts in class
+// 3-Add posts in class ✓
 // 4-Add Attendance in class ✓
 // 5-Mark Attendance for Students ✓
 // 6-Assign Assessment to a class from library
 // 7-Update User Role/Permissions x
-// 8-Get class Participants with their roles
+// 8-Get class Participants with their roles ✓
 
 module.exports = router;

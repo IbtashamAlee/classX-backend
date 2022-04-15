@@ -109,6 +109,31 @@
       "name":"can view class attendance",
       "code":"38",
       "status": "class"
+    },
+    {
+      "name":"can view class polls",
+      "code":"40",
+      "status": "class"
+    },
+    {
+      "name":"can view class posts",
+      "code":"41",
+      "status": "class"
+    },
+    {
+      "name":"can view class assessments",
+      "code":"42",
+      "status": "class"
+    },
+    {
+      "name":"can view class participants",
+      "code":"43",
+      "status": "class"
+    },
+    {
+      "name":"can view class feed",
+      "code":"44",
+      "status": "class"
     }
   ]
 }
