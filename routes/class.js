@@ -204,6 +204,8 @@ router.post('/:id/participants', verifyUser, async (req, res) => {
 
 //Get class participants
 router.get('/:id/participants', verifyUser, async (req, res) => {
+  const isPermitted = await checkPermission(req.user, '43_' + req.params.id);
+  if (!isPermitted) return res.status(403).send("not authorized")
   const [existingClass, existingClassErr] = await safeAwait(prisma.class.findUnique({
     where: {
       id: parseInt(req.params.id)
@@ -291,8 +293,35 @@ router.post('/:id/poll', verifyUser, async (req, res) => {
   return res.send({poll, pollOption: req.body.pollOptions})
 })
 
+//Get all polls in class
+router.get('/:id/poll', verifyUser, async (req, res) => {
+  const isPermitted = await checkPermission(req.user, '40_' + req.params.id);
+  if (!isPermitted) return res.status(403).send("not authorized")
+  const [poll, pollErr] = await safeAwait(prisma.classPoll.findMany({
+    where: {
+      classId : parseInt(req.params.id)
+    },
+    include: {
+      pollOptions: true,
+      pollComments: {
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              imageURL: true,
+            }
+          }
+        }
+      }
+    }
+  }))
+  if (pollErr) return res.status(409).send("unable to fetch Poll");
+  return res.send(poll)
+})
+
 //Get specific poll
-router.get('/poll/:pollId', async (req, res) => {
+router.get('/poll/:pollId', verifyUser, async (req, res) => {
   const [poll, pollErr] = await safeAwait(prisma.classPoll.findUnique({
     where: {
       id: parseInt(req.params.pollId)
@@ -314,6 +343,8 @@ router.get('/poll/:pollId', async (req, res) => {
     }
   }))
   if (pollErr) return res.status(409).send("unable to fetch Poll");
+  const isPermitted = await checkPermission(req.user, '40_' + poll.classId);
+  if (!isPermitted) return res.status(403).send("not authorized")
   return res.send(poll)
 })
 
@@ -418,12 +449,15 @@ router.post('/:class/attendance', verifyUser, async (req, res) => {
       endingTime: req.body.endingTime ?? new Date(new Date().getTime() + 60 * 60 * 24 * 1000)
     }
   }))
+  console.log(attendanceErr)
   if (attendanceErr) return res.status(409).send("Unable to add attendance");
   return res.send(attendance);
 })
 
 //get all attendances in class
 router.get('/:class/attendance', verifyUser, async (req, res) => {
+  const isPermitted = await checkPermission(req.user, '45_' + req.params.class);
+  if (!isPermitted) return res.status(403).send("not authorized")
   const [attendance, attendanceErr] = await safeAwait(prisma.classAttendance.findMany({
     where: {
       classId: parseInt(req.params.class)
@@ -446,7 +480,7 @@ router.get('/:class/attendance', verifyUser, async (req, res) => {
 })
 
 //get specific attendance in class
-router.get('/:class/attendance/:id', verifyUser, async (req, res) => {
+router.get('/attendance/:id', verifyUser, async (req, res) => {
   const [attendance, attendanceErr] = await safeAwait(prisma.classAttendance.findUnique({
     where: {
       id: parseInt(req.params.id)
@@ -466,6 +500,8 @@ router.get('/:class/attendance/:id', verifyUser, async (req, res) => {
   }))
   if (!attendance) return res.status(404).send("attendance not found");
   if (attendanceErr) return res.status(409).send("unable to fetch attendance");
+  const isPermitted = await checkPermission(req.user, '45_' + attendance.classId);
+  if (!isPermitted) return res.status(403).send("not authorized")
   return res.send(attendance);
 })
 
@@ -503,7 +539,6 @@ router.post('/:class/post', verifyUser, async (req, res) => {
   const isPermitted = await checkPermission(req.user, '19_' + req.params.class);
   if (!isPermitted) return res.status(403).send("not authorized")
   if (!req.body.content) return res.status(409).send("Post Content not provided");
-  const files = req.body.files.map(file => `{fileId : ${file.id}}`)
   // return res.send(files)
   const [post, postErr] = await safeAwait(prisma.classPost.create({
     data: {
@@ -516,23 +551,29 @@ router.post('/:class/post', verifyUser, async (req, res) => {
     }
   }))
   if (postErr) return res.status(409).send("Unable to add post");
-  success = []
-  failed = []
-  for await (file of req.body.files) {
-    const [postAttachment, postAttachmentErr] = await safeAwait(prisma.postAttachments.create({
-      data: {
-        postId: post.id,
-        fileId: file.id
-      }
-    }))
-    if (postAttachment) success.push(file)
-    if (postAttachmentErr) failed.push(file)
+  if(req.body.files) {
+    success = []
+    failed = []
+    for await (file of req.body.files) {
+      const [postAttachment, postAttachmentErr] = await safeAwait(prisma.postAttachments.create({
+        data: {
+          postId: post.id,
+          fileId: file.id
+        }
+      }))
+      if (postAttachment) success.push(file)
+      if (postAttachmentErr) failed.push(file)
+    }
+    return res.send({post, files: success, failed_files: failed});
   }
-  return res.send({post, files: success, failed_files: failed});
+  return res.send({post});
+
 })
 
 //fetch all posts in class
 router.get('/:id/post', verifyUser, async (req, res) => {
+  const isPermitted = await checkPermission(req.user, '41_' + req.params.id);
+  if (!isPermitted) return res.status(403).send("not authorized")
   const [posts, postsErr] = await safeAwait(prisma.classPost.findMany({
     where: {
       classId: parseInt(req.params.id)
@@ -583,7 +624,9 @@ router.get('/post/:id', verifyUser, async (req, res) => {
       }
     }
   }))
-  if (postErr) return res.status(409).send("Unable to fetch post")
+  if (postErr) return res.status(409).send("Unable to fetch post");
+  const isPermitted = await checkPermission(req.user, '41_' + post.classId);
+  if (!isPermitted) return res.status(403).send("not authorized")
   return res.json(post)
 })
 

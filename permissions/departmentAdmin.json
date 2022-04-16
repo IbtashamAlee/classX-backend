@@ -134,6 +134,11 @@
       "name":"can view class feed",
       "code":"44",
       "status": "class"
+    },
+    {
+      "name":"can view attendance instance in class",
+      "code":"45",
+      "status": "class"
     }
   ]
 }

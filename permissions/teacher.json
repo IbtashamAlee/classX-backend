@@ -107,6 +107,10 @@
     {
       "name":"can view class feed",
       "code":"44"
+    },
+    {
+      "name":"can view attendance instance in class",
+      "code":"45"
     }
   ]
 }
