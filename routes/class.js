@@ -516,70 +516,74 @@ router.post('/:class/post', verifyUser, async (req, res) => {
     }
   }))
   if (postErr) return res.status(409).send("Unable to add post");
-  for await (file of req.body.files){
-    await prisma.postAttachments.create({
-      data:{
-        postId : post.id,
-        fileId : file.id
+  success = []
+  failed = []
+  for await (file of req.body.files) {
+    const [postAttachment, postAttachmentErr] = await safeAwait(prisma.postAttachments.create({
+      data: {
+        postId: post.id,
+        fileId: file.id
       }
-    })
+    }))
+    if (postAttachment) success.push(file)
+    if (postAttachmentErr) failed.push(file)
   }
-  return res.send({post,files : req.body.files});
+  return res.send({post, files: success, failed_files: failed});
 })
 
 //fetch all posts in class
-router.get('/:id/post', verifyUser, async (req,res) =>{
-  const [posts,postsErr] = await safeAwait(prisma.classPost.findMany({
-    where:{
-      classId : parseInt(req.params.id)
+router.get('/:id/post', verifyUser, async (req, res) => {
+  const [posts, postsErr] = await safeAwait(prisma.classPost.findMany({
+    where: {
+      classId: parseInt(req.params.id)
     },
-    include:{
-      postAttachments : {
-        select:{
-          file : true
+    include: {
+      postAttachments: {
+        select: {
+          file: true
         }
       },
       postComments: {
-        select:{
-          user : {
-            select:{
-              id: true, name: true, imageURL : true
+        select: {
+          user: {
+            select: {
+              id: true, name: true, imageURL: true
             }
           },
-          body : true
+          body: true
         }
       }
     }
   }))
-  if(postsErr) return res.status(409).send("Unable to fetch posts")
+  if (postsErr) return res.status(409).send("Unable to fetch posts")
   return res.json(posts)
 })
 
 //fetch particular post in class
-router.get('/post/:id', verifyUser, async (req,res) =>{
-  const [post,postErr] = await safeAwait(prisma.classPost.findUnique({
-    where:{
-      id : parseInt(req.params.id)
+router.get('/post/:id', verifyUser, async (req, res) => {
+  const [post, postErr] = await safeAwait(prisma.classPost.findUnique({
+    where: {
+      id: parseInt(req.params.id)
     },
-    include:{
-      postAttachments : {
-        select:{
-          file : true
+    include: {
+      postAttachments: {
+        select: {
+          file: true
         }
       },
       postComments: {
-        select:{
-          user : {
-            select:{
-              id: true, name: true, imageURL : true
+        select: {
+          user: {
+            select: {
+              id: true, name: true, imageURL: true
             }
           },
-          body : true
+          body: true
         }
       }
     }
   }))
-  if(postErr) return res.status(409).send("Unable to fetch post")
+  if (postErr) return res.status(409).send("Unable to fetch post")
   return res.json(post)
 })
 
