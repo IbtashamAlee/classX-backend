@@ -299,11 +299,14 @@ router.get('/:id/poll', verifyUser, async (req, res) => {
   if (!isPermitted) return res.status(403).send("not authorized")
   const [poll, pollErr] = await safeAwait(prisma.classPoll.findMany({
     where: {
-      classId : parseInt(req.params.id)
+      classId: parseInt(req.params.id)
     },
     include: {
       pollOptions: true,
       pollComments: {
+        where: {
+          deletedAt: null
+        },
         include: {
           user: {
             select: {
@@ -316,6 +319,7 @@ router.get('/:id/poll', verifyUser, async (req, res) => {
       }
     }
   }))
+  console.log(pollErr)
   if (pollErr) return res.status(409).send("unable to fetch Poll");
   return res.send(poll)
 })
@@ -329,6 +333,9 @@ router.get('/poll/:pollId', verifyUser, async (req, res) => {
     include: {
       pollOptions: true,
       pollComments: {
+        where: {
+          deletedAt: null
+        },
         include: {
           user: {
             select: {
@@ -428,6 +435,31 @@ router.post('/poll/:id/comment', verifyUser, async (req, res) => {
   }))
   if (pollCommentErr) return res.status(409).send("unable to post comment");
   return res.send({pollComment, message: "comment added successfully"})
+})
+
+//delete poll comment
+router.put('/poll/comment/:id', verifyUser, async (req, res) => {
+  const [comment, commentErr] = await safeAwait(prisma.pollComments.findUnique({
+    where: {
+      id: parseInt(req.params.id)
+    },
+    include: {
+      poll: true
+    }
+  }))
+  if (commentErr || !comment) return res.status(409).send("Comment not found");
+  const isPermitted = await checkPermission(req.user, '35_' + comment.poll.classId);
+  if (comment.userId !== req.user.id || !isPermitted) return res.status(403).send("unauthorized");
+  const [updatedComment, updatedCommentErr] = await safeAwait(prisma.pollComments.update({
+    where: {
+      id: parseInt(req.params.id)
+    },
+    data: {
+      deletedAt: new Date()
+    }
+  }))
+  if (updatedCommentErr) return res.status(409).send("unable to delete comment");
+  return res.send("comment deleted successfully");
 })
 
 /*
@@ -551,7 +583,7 @@ router.post('/:class/post', verifyUser, async (req, res) => {
     }
   }))
   if (postErr) return res.status(409).send("Unable to add post");
-  if(req.body.files) {
+  if (req.body.files) {
     success = []
     failed = []
     for await (file of req.body.files) {
@@ -585,13 +617,18 @@ router.get('/:id/post', verifyUser, async (req, res) => {
         }
       },
       postComments: {
+        where: {
+          deletedAt: null
+        },
         select: {
+          id: true,
+          deletedAt: true,
+          body: true,
           user: {
             select: {
               id: true, name: true, imageURL: true
             }
-          },
-          body: true
+          }
         }
       }
     }
@@ -613,7 +650,12 @@ router.get('/post/:id', verifyUser, async (req, res) => {
         }
       },
       postComments: {
+        where: {
+          deletedAt: null
+        },
         select: {
+          id: true,
+          deletedAt: true,
           user: {
             select: {
               id: true, name: true, imageURL: true
@@ -655,6 +697,31 @@ router.post('/post/:id/comment', verifyUser, async (req, res) => {
   console.log(postCommentErr)
   if (postCommentErr) return res.status(409).send("unable to post comment");
   return res.send({postComment, message: "comment added successfully"})
+})
+
+//delete post comments
+router.put('/post/comment/:id', verifyUser, async (req, res) => {
+  const [comment, commentErr] = await safeAwait(prisma.postComments.findUnique({
+    where: {
+      id: parseInt(req.params.id)
+    },
+    include: {
+      post: true
+    }
+  }))
+  if (commentErr || !comment) return res.status(409).send("Comment not found");
+  const isPermitted = await checkPermission(req.user, '35_' + comment.post.classId);
+  if (comment.userId !== req.user.id || !isPermitted) return res.status(403).send("unauthorized");
+  const [updatedComment, updatedCommentErr] = await safeAwait(prisma.postComments.update({
+    where: {
+      id: parseInt(req.params.id)
+    },
+    data: {
+      deletedAt: new Date()
+    }
+  }))
+  if (updatedCommentErr) return res.status(409).send("unable to delete comment");
+  return res.send("comment deleted successfully");
 })
 
 //todo
