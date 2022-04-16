@@ -202,8 +202,10 @@ router.post('/:id/participants', verifyUser, async (req, res) => {
   return res.send({participants_err, unavailable_users, already_participants, added_participants});
 })
 
-//Add participants in class
+//Get class participants
 router.get('/:id/participants', verifyUser, async (req, res) => {
+  const isPermitted = await checkPermission(req.user, '43_' + req.params.id);
+  if (!isPermitted) return res.status(403).send("not authorized")
   const [existingClass, existingClassErr] = await safeAwait(prisma.class.findUnique({
     where: {
       id: parseInt(req.params.id)
@@ -291,8 +293,39 @@ router.post('/:id/poll', verifyUser, async (req, res) => {
   return res.send({poll, pollOption: req.body.pollOptions})
 })
 
+//Get all polls in class
+router.get('/:id/poll', verifyUser, async (req, res) => {
+  const isPermitted = await checkPermission(req.user, '40_' + req.params.id);
+  if (!isPermitted) return res.status(403).send("not authorized")
+  const [poll, pollErr] = await safeAwait(prisma.classPoll.findMany({
+    where: {
+      classId: parseInt(req.params.id)
+    },
+    include: {
+      pollOptions: true,
+      pollComments: {
+        where: {
+          deletedAt: null
+        },
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              imageURL: true,
+            }
+          }
+        }
+      }
+    }
+  }))
+  console.log(pollErr)
+  if (pollErr) return res.status(409).send("unable to fetch Poll");
+  return res.send(poll)
+})
+
 //Get specific poll
-router.get('/poll/:pollId', async (req, res) => {
+router.get('/poll/:pollId', verifyUser, async (req, res) => {
   const [poll, pollErr] = await safeAwait(prisma.classPoll.findUnique({
     where: {
       id: parseInt(req.params.pollId)
@@ -300,6 +333,9 @@ router.get('/poll/:pollId', async (req, res) => {
     include: {
       pollOptions: true,
       pollComments: {
+        where: {
+          deletedAt: null
+        },
         include: {
           user: {
             select: {
@@ -314,6 +350,8 @@ router.get('/poll/:pollId', async (req, res) => {
     }
   }))
   if (pollErr) return res.status(409).send("unable to fetch Poll");
+  const isPermitted = await checkPermission(req.user, '40_' + poll.classId);
+  if (!isPermitted) return res.status(403).send("not authorized")
   return res.send(poll)
 })
 
@@ -399,6 +437,31 @@ router.post('/poll/:id/comment', verifyUser, async (req, res) => {
   return res.send({pollComment, message: "comment added successfully"})
 })
 
+//delete poll comment
+router.put('/poll/comment/:id', verifyUser, async (req, res) => {
+  const [comment, commentErr] = await safeAwait(prisma.pollComments.findUnique({
+    where: {
+      id: parseInt(req.params.id)
+    },
+    include: {
+      poll: true
+    }
+  }))
+  if (commentErr || !comment) return res.status(409).send("Comment not found");
+  const isPermitted = await checkPermission(req.user, '35_' + comment.poll.classId);
+  if (comment.userId !== req.user.id || !isPermitted) return res.status(403).send("unauthorized");
+  const [updatedComment, updatedCommentErr] = await safeAwait(prisma.pollComments.update({
+    where: {
+      id: parseInt(req.params.id)
+    },
+    data: {
+      deletedAt: new Date()
+    }
+  }))
+  if (updatedCommentErr) return res.status(409).send("unable to delete comment");
+  return res.send("comment deleted successfully");
+})
+
 /*
 * ATTENDANCE
 * */
@@ -418,12 +481,15 @@ router.post('/:class/attendance', verifyUser, async (req, res) => {
       endingTime: req.body.endingTime ?? new Date(new Date().getTime() + 60 * 60 * 24 * 1000)
     }
   }))
+  console.log(attendanceErr)
   if (attendanceErr) return res.status(409).send("Unable to add attendance");
   return res.send(attendance);
 })
 
 //get all attendances in class
 router.get('/:class/attendance', verifyUser, async (req, res) => {
+  const isPermitted = await checkPermission(req.user, '45_' + req.params.class);
+  if (!isPermitted) return res.status(403).send("not authorized")
   const [attendance, attendanceErr] = await safeAwait(prisma.classAttendance.findMany({
     where: {
       classId: parseInt(req.params.class)
@@ -446,7 +512,7 @@ router.get('/:class/attendance', verifyUser, async (req, res) => {
 })
 
 //get specific attendance in class
-router.get('/:class/attendance/:id', verifyUser, async (req, res) => {
+router.get('/attendance/:id', verifyUser, async (req, res) => {
   const [attendance, attendanceErr] = await safeAwait(prisma.classAttendance.findUnique({
     where: {
       id: parseInt(req.params.id)
@@ -466,6 +532,8 @@ router.get('/:class/attendance/:id', verifyUser, async (req, res) => {
   }))
   if (!attendance) return res.status(404).send("attendance not found");
   if (attendanceErr) return res.status(409).send("unable to fetch attendance");
+  const isPermitted = await checkPermission(req.user, '45_' + attendance.classId);
+  if (!isPermitted) return res.status(403).send("not authorized")
   return res.send(attendance);
 })
 
@@ -497,14 +565,173 @@ router.post('/:class/attendance/:id', verifyUser, async (req, res) => {
 /*
 * CLASS POSTS
 * */
+
+//add post in class
+router.post('/:class/post', verifyUser, async (req, res) => {
+  const isPermitted = await checkPermission(req.user, '19_' + req.params.class);
+  if (!isPermitted) return res.status(403).send("not authorized")
+  if (!req.body.content) return res.status(409).send("Post Content not provided");
+  // return res.send(files)
+  const [post, postErr] = await safeAwait(prisma.classPost.create({
+    data: {
+      classId: parseInt(req.params.class),
+      title: req.body.title,
+      createdBy: req.user.id,
+      createdAt: new Date(),
+      startingTime: req.body.startingTime ?? new Date(),
+      body: req.body.content,
+    }
+  }))
+  if (postErr) return res.status(409).send("Unable to add post");
+  if (req.body.files) {
+    success = []
+    failed = []
+    for await (file of req.body.files) {
+      const [postAttachment, postAttachmentErr] = await safeAwait(prisma.postAttachments.create({
+        data: {
+          postId: post.id,
+          fileId: file.id
+        }
+      }))
+      if (postAttachment) success.push(file)
+      if (postAttachmentErr) failed.push(file)
+    }
+    return res.send({post, files: success, failed_files: failed});
+  }
+  return res.send({post});
+
+})
+
+//fetch all posts in class
+router.get('/:id/post', verifyUser, async (req, res) => {
+  const isPermitted = await checkPermission(req.user, '41_' + req.params.id);
+  if (!isPermitted) return res.status(403).send("not authorized")
+  const [posts, postsErr] = await safeAwait(prisma.classPost.findMany({
+    where: {
+      classId: parseInt(req.params.id)
+    },
+    include: {
+      postAttachments: {
+        select: {
+          file: true
+        }
+      },
+      postComments: {
+        where: {
+          deletedAt: null
+        },
+        select: {
+          id: true,
+          deletedAt: true,
+          body: true,
+          user: {
+            select: {
+              id: true, name: true, imageURL: true
+            }
+          }
+        }
+      }
+    }
+  }))
+  if (postsErr) return res.status(409).send("Unable to fetch posts")
+  return res.json(posts)
+})
+
+//fetch particular post in class
+router.get('/post/:id', verifyUser, async (req, res) => {
+  const [post, postErr] = await safeAwait(prisma.classPost.findUnique({
+    where: {
+      id: parseInt(req.params.id)
+    },
+    include: {
+      postAttachments: {
+        select: {
+          file: true
+        }
+      },
+      postComments: {
+        where: {
+          deletedAt: null
+        },
+        select: {
+          id: true,
+          deletedAt: true,
+          user: {
+            select: {
+              id: true, name: true, imageURL: true
+            }
+          },
+          body: true
+        }
+      }
+    }
+  }))
+  if (postErr) return res.status(409).send("Unable to fetch post");
+  const isPermitted = await checkPermission(req.user, '41_' + post.classId);
+  if (!isPermitted) return res.status(403).send("not authorized")
+  return res.json(post)
+})
+
+//comment on a poll
+router.post('/post/:id/comment', verifyUser, async (req, res) => {
+  const [post, postErr] = await safeAwait(prisma.classPost.findUnique({
+    where: {
+      id: parseInt(req.params.id)
+    }
+  }))
+  if (!post || postErr) return res.status(409).send("unable to fetch post . Post may not exist")
+  //check if ending time os overed
+  const isPermitted = await checkPermission(req.user, '34_' + post.classId);
+  if (!isPermitted) return res.status(403).send("not authorized")
+  const comment = req.body.comment;
+  if (!comment) return res.status(409).send("Comment not provided");
+  if (comment.trim().length < 1) return res.status(409).send("Empty comments not allowed");
+  const [postComment, postCommentErr] = await safeAwait(prisma.postComments.create({
+    data: {
+      postId: parseInt(req.params.id),
+      userId: req.user.id,
+      createdAt: new Date(),
+      body: comment.trim()
+    }
+  }))
+  console.log(postCommentErr)
+  if (postCommentErr) return res.status(409).send("unable to post comment");
+  return res.send({postComment, message: "comment added successfully"})
+})
+
+//delete post comments
+router.put('/post/comment/:id', verifyUser, async (req, res) => {
+  const [comment, commentErr] = await safeAwait(prisma.postComments.findUnique({
+    where: {
+      id: parseInt(req.params.id)
+    },
+    include: {
+      post: true
+    }
+  }))
+  if (commentErr || !comment) return res.status(409).send("Comment not found");
+  const isPermitted = await checkPermission(req.user, '35_' + comment.post.classId);
+  if (comment.userId !== req.user.id || !isPermitted) return res.status(403).send("unauthorized");
+  const [updatedComment, updatedCommentErr] = await safeAwait(prisma.postComments.update({
+    where: {
+      id: parseInt(req.params.id)
+    },
+    data: {
+      deletedAt: new Date()
+    }
+  }))
+  if (updatedCommentErr) return res.status(409).send("unable to delete comment");
+  return res.send("comment deleted successfully");
+})
+
 //todo
 // 1-Add polls in class ✓
 // 2-Polls Participation and comments ✓
-// 3-Add posts in class
+// 3-Add posts in class ✓
 // 4-Add Attendance in class ✓
 // 5-Mark Attendance for Students ✓
 // 6-Assign Assessment to a class from library
 // 7-Update User Role/Permissions x
-// 8-Get class Participants with their roles
+// 8-Get class Participants with their roles ✓
 
 module.exports = router;

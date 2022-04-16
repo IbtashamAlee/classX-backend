@@ -35,6 +35,30 @@
         {
             "name":"can create a new class",
             "code":"16"
+        },
+        {
+            "name":"can view class polls",
+            "code":"40"
+        },
+        {
+            "name":"can view class posts",
+            "code":"41"
+        },
+        {
+            "name":"can view class assessments",
+            "code":"42"
+        },
+        {
+            "name":"can view class participants",
+            "code":"43"
+        },
+        {
+            "name":"can view class feed",
+            "code":"44"
+        },
+        {
+            "name":"can view attendance instance in class",
+            "code":"45"
         }
     ]
 }

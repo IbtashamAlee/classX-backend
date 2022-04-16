@@ -13,6 +13,7 @@ const s3 = new aws.S3({
   secretAccessKey: process.env.AWS_SECRET_KEY,
   Bucket: process.env.AWS_BUCKET_NAME
 })
+
 const upload = multer({
   limits: {fileSize: 10 * 1024 * 1024},
   storage: multerS3({
@@ -56,7 +57,7 @@ router.post('/', verifyUser, upload.single('file'),async function (req, res, nex
 //Uploading Multiple Files to aws s3 bucket
 router.post('/multiple', verifyUser, upload.array('file', 5), async function (req, res, next) {
   if (req.files) {
-    files = []
+    const files = []
     for await (file of req.files) {
       const newFile = await prisma.file.create({
         data: {

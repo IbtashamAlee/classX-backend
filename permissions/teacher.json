@@ -77,7 +77,7 @@
       "code":"34"
     },
     {
-      "name":"can rmeove comments (personal)",
+      "name":"can remove comments (personal)",
       "code":"35"
     },
     {
@@ -87,6 +87,30 @@
     {
       "name":"can view class attendance",
       "code":"38"
+    },
+    {
+      "name":"can view class polls",
+      "code":"40"
+    },
+    {
+      "name":"can view class posts",
+      "code":"41"
+    },
+    {
+      "name":"can view class assessments",
+      "code":"42"
+    },
+    {
+      "name":"can view class participants",
+      "code":"43"
+    },
+    {
+      "name":"can view class feed",
+      "code":"44"
+    },
+    {
+      "name":"can view attendance instance in class",
+      "code":"45"
     }
   ]
 }

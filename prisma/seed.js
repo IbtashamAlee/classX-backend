@@ -15,7 +15,6 @@ async function createSystemAdminRole() {
             name: "SystemAdmin"
         }
     })
-    const str = new Date().getMilliseconds()
     for await(const per of permissions){
         const permission = await prisma.permission.create({
             data: {
@@ -31,7 +30,6 @@ async function createSystemAdminRole() {
         })
         console.log(rolePermission)
     }
-    console.log(new Date().getMilliseconds() - str)
 }
 
 async function makeSystemAdmin(email) {
