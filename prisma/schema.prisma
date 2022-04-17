@@ -273,7 +273,7 @@ model Option{
   question Question @relation(fields: [questionId], references: [id])
   questionId Int
   value String
-  is_correct Boolean
+  isCorrect Boolean
   deletedAt DateTime? @db.Timestamptz(6)
 }
 
