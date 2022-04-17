@@ -20,7 +20,7 @@ app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.use('/', indexRouter);
-app.use('/users', usersRouter);
+app.use('/user', usersRouter);
 app.use('/auth', authenticationRouter);
 app.use('/institutes', instituteRouter);
 app.use('/departments', departmentRouter);

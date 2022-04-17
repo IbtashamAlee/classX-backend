@@ -438,8 +438,7 @@ router.post('/poll/:id/comment', verifyUser, async (req, res) => {
 })
 
 //delete poll comment
-router.put('/poll/comment/:id', verifyUser, async (req, res) => {
-  const [comment, commentErr] = await safeAwait(prisma.pollComments.findUnique({
+router.put('/poll/comment/:id', verifyUser, async (req, res) => {const [comment, commentErr] = await safeAwait(prisma.pollComments.findUnique({
     where: {
       id: parseInt(req.params.id)
     },
@@ -459,8 +458,7 @@ router.put('/poll/comment/:id', verifyUser, async (req, res) => {
     }
   }))
   if (updatedCommentErr) return res.status(409).send("unable to delete comment");
-  return res.send("comment deleted successfully");
-})
+  return res.send("comment deleted successfully");})
 
 /*
 * ATTENDANCE
@@ -724,14 +722,11 @@ router.put('/post/comment/:id', verifyUser, async (req, res) => {
   return res.send("comment deleted successfully");
 })
 
-//todo
-// 1-Add polls in class ✓
-// 2-Polls Participation and comments ✓
-// 3-Add posts in class ✓
-// 4-Add Attendance in class ✓
-// 5-Mark Attendance for Students ✓
-// 6-Assign Assessment to a class from library
-// 7-Update User Role/Permissions x
-// 8-Get class Participants with their roles ✓
+
+/*
+* CLASS FEED
+* */
+//todo after assessment module.
+
 
 module.exports = router;
