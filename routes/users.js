@@ -58,20 +58,20 @@ router.get("/:id", verifyUser, verifySystemAdmin, async (req, res) => {
 //return all the classes of user with his embedded roles.
 router.get("/me/classes", verifyUser, async (req, res) => {
   const [classes, classesErr] = await safeAwait(prisma.$queryRaw`
-      Select "Class".name        as           name,
-             "Class".description as           description,
-             "Department".name   as           department,
-             "Institute".name    as           institute,
-             "ClassParticipants"."classId",
+Select "Class".name                  as           name,
+             "Class".description           as           description,
+             "Department".name             as           department,
+             "Institute".name              as           institute,
+             "ClassParticipants"."classId" as           id,
              (Select "Role".name
               from "Role"
                        INNER JOIN "UserRole" ON "Role".id = "UserRole"."roleId"
               Where "Role"."classId" = "Class".id
-                AND "userId" = ${req.user.id} LIMIT 1 )
+                AND "userId" = ${parseInt(req.user.id)} LIMIT 1 )
         as role
       from "Class"
           INNER JOIN "ClassParticipants"
-      ON "Class".id = "ClassParticipants"."classId" AND "ClassParticipants"."userId"=${req.user.id}
+      ON "Class".id = "ClassParticipants"."classId" AND "ClassParticipants"."userId"=${parseInt(req.user.id)}
           LEFT JOIN "Department" ON
           "Class"."departmentId" = "Department".id
           LEFT JOIN "Institute" ON
@@ -199,5 +199,34 @@ router.put("/unblock/:id", verifyUser, verifySystemAdmin, async (req, res) => {
   }
 });
 
+//change profile image
+router.put("/profile-pic", verifyUser, async (req, res) => {
+  if (!req.body.imageURL) return res.status(409).send("url not provided");
+  const [updatedUser] = await safeAwait(prisma.user.update({
+    where: {
+      id: req.user.id
+    },
+    data: {
+      imageURL: req.body.imageURL
+    }
+  }))
+  if (updatedUser) return res.send("profile image updated successfully")
+  return res.send("unable to update profile image");
+})
 
+//update user status
+router.put("/status", verifyUser, async (req, res) => {
+  if (!req.body.status) return res.status(409).send("user status not provided");
+  if (req.body.status.trim().length < 1) return res.send("empty value not allowed")
+  const [updatedUser] = await safeAwait(prisma.user.update({
+    where: {
+      id: req.user.id
+    },
+    data: {
+      userStatus: req.body.status
+    }
+  }))
+  if (updatedUser) return res.send("user status updated successfully")
+  return res.send("unable to update user status");
+})
 module.exports = router;
