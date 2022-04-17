@@ -58,7 +58,7 @@ router.get("/:id", verifyUser, verifySystemAdmin, async (req, res) => {
 //return all the classes of user with his embedded roles.
 router.get("/me/classes", verifyUser, async (req, res) => {
   const [classes, classesErr] = await safeAwait(prisma.$queryRaw`
-      Select "Class".name                  as           name,
+Select "Class".name                  as           name,
              "Class".description           as           description,
              "Department".name             as           department,
              "Institute".name              as           institute,
@@ -78,7 +78,7 @@ router.get("/me/classes", verifyUser, async (req, res) => {
           "Department"."instituteId" = "Institute".id
       ORDER BY "Institute".id
   `)
-  if (classesErr) return res.send({message: 'Unable to fetch classes', err: classesErr});
+  if (classesErr) return res.status(409).send({message: 'Unable to fetch classes', err: classesErr});
   return res.json(classes)
 })
 
