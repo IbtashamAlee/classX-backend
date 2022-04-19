@@ -6,7 +6,7 @@ const {PrismaClient} = require("@prisma/client");
 const prisma = new PrismaClient();
 const safeAwait = require('../services/safe_await');
 
-//get public users
+//get all assessments from user's library
 router.get("/", verifyUser, async (req, res) => {
   const [assessments,assessmentsErr] = await safeAwait(prisma.assessment.findMany({
     where:{
@@ -29,6 +29,54 @@ router.get("/", verifyUser, async (req, res) => {
   return res.send(assessments);
 });
 
+//get all assessments from user's library
+router.get("/public", verifyUser, async (req, res) => {
+  const [assessments,assessmentsErr] = await safeAwait(prisma.assessment.findMany({
+    where:{
+      isPublic : true
+    },
+    include: {
+      question: {
+        include: {
+          questionAttachment: {
+            include:{
+              file : true
+            }
+          },
+          option: true
+        }
+      }
+    }
+  }))
+  if(assessmentsErr) return res.status(409).send("unable to fetch assessments");
+  return res.send(assessments);
+});
+
+//get specific assessment from user's library
+router.get("/:id", verifyUser, async (req, res) => {
+  const [assessments,assessmentsErr] = await safeAwait(prisma.assessment.findMany({
+    where:{
+      createdBy : req.user.id,
+      id : parseInt(req.params.id)
+    },
+    include: {
+      question: {
+        include: {
+          questionAttachment: {
+            include:{
+              file : true
+            }
+          },
+          option: true
+        }
+      }
+    }
+  }))
+  if(assessmentsErr) return res.status(409).send("unable to fetch assessments");
+  return res.send(assessments);
+});
+
+//create new assessment (format in postman request)
 router.post("/", verifyUser, async (req, res) => {
   if(!req.body.name) return res.status(409).send("Name not provided");
   if (req.body.questions.length < 1) return res.status(409).send("Can't create an empty assessment");

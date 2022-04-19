@@ -316,7 +316,7 @@ model ClassAssessment{
   allowResubmission Boolean
   startingTime DateTime @db.Timestamptz(6)
   isMultiTimer Boolean
-  QuestionsToDisplay Int
+  QuestionsToDisplay Int?
   questionResponse QuestionResponse[]
   assessmentComments ClassAssessmentComments[]
 }
