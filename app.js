@@ -11,6 +11,7 @@ const instituteRouter = require('./routes/institute');
 const departmentRouter = require('./routes/department');
 const fileRouter = require('./routes/file');
 const classRouter = require('./routes/class');
+const assessmentRouter = require('./routes/assessment');
 const app = express();
 
 app.use(logger('dev'));
@@ -26,4 +27,6 @@ app.use('/institutes', instituteRouter);
 app.use('/departments', departmentRouter);
 app.use('/file', fileRouter);
 app.use('/class', classRouter);
+app.use('/assessment', assessmentRouter);
+
 module.exports = app;

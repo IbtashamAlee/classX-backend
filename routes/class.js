@@ -438,7 +438,8 @@ router.post('/poll/:id/comment', verifyUser, async (req, res) => {
 })
 
 //delete poll comment
-router.put('/poll/comment/:id', verifyUser, async (req, res) => {const [comment, commentErr] = await safeAwait(prisma.pollComments.findUnique({
+router.put('/poll/comment/:id', verifyUser, async (req, res) => {
+  const [comment, commentErr] = await safeAwait(prisma.pollComments.findUnique({
     where: {
       id: parseInt(req.params.id)
     },
@@ -458,7 +459,8 @@ router.put('/poll/comment/:id', verifyUser, async (req, res) => {const [comment,
     }
   }))
   if (updatedCommentErr) return res.status(409).send("unable to delete comment");
-  return res.send("comment deleted successfully");})
+  return res.send("comment deleted successfully");
+})
 
 /*
 * ATTENDANCE
@@ -724,9 +726,125 @@ router.put('/post/comment/:id', verifyUser, async (req, res) => {
 
 
 /*
-* CLASS FEED
+* Class Assessments
 * */
-//todo after assessment module.
+//get all class assessments
+router.get('/:classid/assessment' , verifyUser , async(req, res)=>{
+  const [classAssessment,classAssessmentErr] = await safeAwait(prisma.classAssessment.findMany({
+    where:{
+      classId : parseInt(req.params.classid)
+    },
+    include:{
+      assessmentComments:{
+        where: {
+          deletedAt: null
+        },
+        select: {
+          id: true,
+          deletedAt: true,
+          user: {
+            select: {
+              id: true, name: true, imageURL: true
+            }
+          },
+          body: true
+        }
+      }
+    }
+  }));
+  console.log(classAssessmentErr)
+  if(classAssessmentErr) return res.status(409).send("unable to fetch class assessments");
+  return res.send(classAssessment)
+})
+
+//get specific class assessment
+router.get('/:classid/assessment/:id' , verifyUser , async(req, res)=>{
+  const [classAssessment,classAssessmentErr] = await safeAwait(prisma.classAssessment.findMany({
+    where:{
+      id : parseInt(req.params.id),
+      classId : parseInt(req.params.classid)
+    }
+  }));
+  if(classAssessmentErr) return res.status(409).send("unable to fetch class assessments");
+  return res.send(classAssessment)
+})
+
+//assign an assessment in class
+router.post('/:classid/assessment/:id' , verifyUser , async (req,res)=>{
+  const [assessment,assessmentErr] = await safeAwait(prisma.assessment.findUnique({
+    where:{
+      id : parseInt(req.params.id)
+    }
+  }))
+  if(!assessment || assessmentErr) return res.status(409).send("unable to find specified assessment");
+  if(assessment.createdBy !== req.user.id || !assessment.isPublic) return res.status(403).send("unauthorized");
+  const isPermitted = await checkPermission(req.user, '28_' + req.params.classid);
+  console.log(isPermitted)
+  if (!isPermitted) return res.status(403).send("not authorized");
+  const [classAssessment, classAssessmentErr] = await safeAwait(prisma.classAssessment.create({
+    data:{
+      classId : parseInt(req.params.classid),
+      assessmentId : assessment.id,
+      allowResubmission : req.body.allowResubmission ?? false,
+      startingTime : req.body.startingTime ?? new Date(),
+      isMultiTimer : req.body.isMultiTimer ?? false,
+      QuestionsToDisplay : req.body.questionsToDisplay ?? null
+    }
+  }))
+  if(classAssessmentErr) return res.status(409).send("unable to add assessment to class");
+  return res.send(classAssessment);
+})
+
+//comment on class assessment
+router.post('/assessment/:id/comment', verifyUser, async (req, res) => {
+  const [classAssessment, classAssesssmentErr] = await safeAwait(prisma.classPost.findUnique({
+    where: {
+      id: parseInt(req.params.id)
+    }
+  }))
+  if (!classAssessment || classAssesssmentErr) return res.status(409).send("unable to find specified class assessment");
+  const isPermitted = await checkPermission(req.user, '34_' + classAssessment.classId);
+  if (!isPermitted) return res.status(403).send("not authorized")
+  const comment = req.body.comment;
+  if (!comment) return res.status(409).send("Comment not provided");
+  if (comment.trim().length < 1) return res.status(409).send("Empty comments not allowed");
+  const [classAssessmentComment,classAssessmentCommentErr] = await safeAwait(prisma.classAssessmentComments.create({
+    data: {
+      assessmentId: parseInt(req.params.id),
+      userId: req.user.id,
+      createdAt: new Date(),
+      body: comment.trim()
+    }
+  }))
+  console.log(classAssessmentCommentErr)
+  if (classAssessmentCommentErr) return res.status(409).send("unable to post comment");
+  return res.send({classAssessmentComment, message: "comment added successfully"})
+})
+
+//delete class assessment comments
+router.put('/assessment/comment/:id', verifyUser, async (req, res) => {
+  const [comment, commentErr] = await safeAwait(prisma.classAssessmentComments.findUnique({
+    where: {
+      id: parseInt(req.params.id)
+    },
+    include: {
+      classAssessment: true
+    }
+  }))
+  if (commentErr || !comment) return res.status(409).send("Comment not found");
+  const isPermitted = await checkPermission(req.user, '35_' + comment.classAssessment.classId);
+  if (comment.userId !== req.user.id || !isPermitted) return res.status(403).send("unauthorized");
+  const [updatedComment, updatedCommentErr] = await safeAwait(prisma.classAssessmentComments.update({
+    where: {
+      id: parseInt(req.params.id)
+    },
+    data: {
+      deletedAt: new Date()
+    }
+  }))
+  if (updatedCommentErr) return res.status(409).send("unable to delete comment");
+  return res.send("comment deleted successfully");
+})
 
 
 module.exports = router;
