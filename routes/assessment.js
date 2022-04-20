@@ -1,6 +1,5 @@
 const express = require("express");
 const router = express.Router();
-const {verifySystemAdmin} = require("../middlewares/verifySystemAdmin");
 const {verifyUser} = require("../middlewares/verifyUser");
 const {PrismaClient} = require("@prisma/client");
 const prisma = new PrismaClient();
@@ -151,4 +150,5 @@ router.post("/", verifyUser, async (req, res) => {
     })
   })
 })
+
 module.exports = router;

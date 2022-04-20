@@ -28,4 +28,5 @@ app.use('/departments', departmentRouter);
 app.use('/file', fileRouter);
 app.use('/class', classRouter);
 app.use('/assessment', assessmentRouter);
+
 module.exports = app;
