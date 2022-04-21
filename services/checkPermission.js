@@ -3,7 +3,6 @@ const prisma = new PrismaClient();
 const safeAwait = require('./safe_await');
 
 async function checkPermission(user, pcode) {
-  console.log(pcode)
   const [userPermission, permissionErr] = await safeAwait(prisma.permission.findUnique({
     where: {
       code: pcode

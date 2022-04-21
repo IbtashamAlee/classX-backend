@@ -279,7 +279,6 @@ router.post('/:id/poll', verifyUser, async (req, res) => {
       classId: parseInt(req.params.id)
     }
   }));
-  console.log(pollErr)
   if (pollErr) return res.status(409).send("unable to add poll");
   for await (const option of req.body.pollOptions) {
     const opt = await prisma.pollOption.create({
@@ -851,6 +850,8 @@ router.put('/assessment/comment/:id', verifyUser, async (req, res) => {
 * Class Feed
 * */
 router.get('/:classid/feed', verifyUser, async (req, res) => {
+  const records = req.query.records
+  const page = req.query.page
   let classFeed = [];
   const [classAssessment, classAssessmentErr] = await safeAwait(prisma.classAssessment.findMany({
     where: {
@@ -872,7 +873,9 @@ router.get('/:classid/feed', verifyUser, async (req, res) => {
           body: true
         }
       }
-    }
+    },
+    skip: parseInt(page&&records ? ((page-1) * records) : 0) ,
+    take : parseInt(records ?? 10)
   }));
   const [posts, postsErr] = await safeAwait(prisma.classPost.findMany({
     where: {
@@ -899,7 +902,9 @@ router.get('/:classid/feed', verifyUser, async (req, res) => {
           }
         }
       }
-    }
+    },
+    skip: parseInt(page&&records ? ((page-1) * records) : 0) ,
+    take : parseInt(records ?? 10)
   }))
   const [attendance, attendanceErr] = await safeAwait(prisma.classAttendance.findMany({
     where: {
@@ -916,7 +921,9 @@ router.get('/:classid/feed', verifyUser, async (req, res) => {
           }
         }
       }
-    }
+    },
+    skip: parseInt(page&&records ? ((page-1) * records) : 0) ,
+    take : parseInt(records ?? 10)
   }))
   const [poll, pollErr] = await safeAwait(prisma.classPoll.findMany({
     where: {
@@ -938,7 +945,9 @@ router.get('/:classid/feed', verifyUser, async (req, res) => {
           }
         }
       }
-    }
+    },
+    skip: parseInt(page&&records ? ((page-1) * records) : 0) ,
+    take : parseInt(records ?? 10)
   }))
   if (classAssessment) classFeed = classFeed.concat(classAssessment.map(assessment => ({type: "assessment", ...assessment})));
   if (posts) classFeed = classFeed.concat(posts.map(post => ({type: "post", ...post})));
