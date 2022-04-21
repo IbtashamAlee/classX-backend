@@ -728,14 +728,15 @@ router.put('/post/comment/:id', verifyUser, async (req, res) => {
 /*
 * Class Assessments
 * */
+
 //get all class assessments
-router.get('/:classid/assessment' , verifyUser , async(req, res)=>{
-  const [classAssessment,classAssessmentErr] = await safeAwait(prisma.classAssessment.findMany({
-    where:{
-      classId : parseInt(req.params.classid)
+router.get('/:classid/assessment', verifyUser, async (req, res) => {
+  const [classAssessment, classAssessmentErr] = await safeAwait(prisma.classAssessment.findMany({
+    where: {
+      classId: parseInt(req.params.classid)
     },
-    include:{
-      assessmentComments:{
+    include: {
+      assessmentComments: {
         where: {
           deletedAt: null
         },
@@ -753,45 +754,45 @@ router.get('/:classid/assessment' , verifyUser , async(req, res)=>{
     }
   }));
   console.log(classAssessmentErr)
-  if(classAssessmentErr) return res.status(409).send("unable to fetch class assessments");
+  if (classAssessmentErr) return res.status(409).send("unable to fetch class assessments");
   return res.send(classAssessment)
 })
 
 //get specific class assessment
-router.get('/:classid/assessment/:id' , verifyUser , async(req, res)=>{
-  const [classAssessment,classAssessmentErr] = await safeAwait(prisma.classAssessment.findMany({
-    where:{
-      id : parseInt(req.params.id),
-      classId : parseInt(req.params.classid)
+router.get('/:classid/assessment/:id', verifyUser, async (req, res) => {
+  const [classAssessment, classAssessmentErr] = await safeAwait(prisma.classAssessment.findMany({
+    where: {
+      id: parseInt(req.params.id),
+      classId: parseInt(req.params.classid)
     }
   }));
-  if(classAssessmentErr) return res.status(409).send("unable to fetch class assessments");
+  if (classAssessmentErr) return res.status(409).send("unable to fetch class assessments");
   return res.send(classAssessment)
 })
 
 //assign an assessment in class
-router.post('/:classid/assessment/:id' , verifyUser , async (req,res)=>{
-  const [assessment,assessmentErr] = await safeAwait(prisma.assessment.findUnique({
-    where:{
-      id : parseInt(req.params.id)
+router.post('/:classid/assessment/:id', verifyUser, async (req, res) => {
+  const [assessment, assessmentErr] = await safeAwait(prisma.assessment.findUnique({
+    where: {
+      id: parseInt(req.params.id)
     }
   }))
-  if(!assessment || assessmentErr) return res.status(409).send("unable to find specified assessment");
-  if(assessment.createdBy !== req.user.id || !assessment.isPublic) return res.status(403).send("unauthorized");
+  if (!assessment || assessmentErr) return res.status(409).send("unable to find specified assessment");
+  if (assessment.createdBy !== req.user.id || !assessment.isPublic) return res.status(403).send("unauthorized");
   const isPermitted = await checkPermission(req.user, '28_' + req.params.classid);
   console.log(isPermitted)
   if (!isPermitted) return res.status(403).send("not authorized");
   const [classAssessment, classAssessmentErr] = await safeAwait(prisma.classAssessment.create({
-    data:{
-      classId : parseInt(req.params.classid),
-      assessmentId : assessment.id,
-      allowResubmission : req.body.allowResubmission ?? false,
-      startingTime : req.body.startingTime ?? new Date(),
-      isMultiTimer : req.body.isMultiTimer ?? false,
-      QuestionsToDisplay : req.body.questionsToDisplay ?? null
+    data: {
+      classId: parseInt(req.params.classid),
+      assessmentId: assessment.id,
+      allowResubmission: req.body.allowResubmission ?? false,
+      startingTime: req.body.startingTime ?? new Date(),
+      isMultiTimer: req.body.isMultiTimer ?? false,
+      QuestionsToDisplay: req.body.questionsToDisplay ?? null
     }
   }))
-  if(classAssessmentErr) return res.status(409).send("unable to add assessment to class");
+  if (classAssessmentErr) return res.status(409).send("unable to add assessment to class");
   return res.send(classAssessment);
 })
 
@@ -808,7 +809,7 @@ router.post('/assessment/:id/comment', verifyUser, async (req, res) => {
   const comment = req.body.comment;
   if (!comment) return res.status(409).send("Comment not provided");
   if (comment.trim().length < 1) return res.status(409).send("Empty comments not allowed");
-  const [classAssessmentComment,classAssessmentCommentErr] = await safeAwait(prisma.classAssessmentComments.create({
+  const [classAssessmentComment, classAssessmentCommentErr] = await safeAwait(prisma.classAssessmentComments.create({
     data: {
       assessmentId: parseInt(req.params.id),
       userId: req.user.id,
@@ -846,5 +847,104 @@ router.put('/assessment/comment/:id', verifyUser, async (req, res) => {
   return res.send("comment deleted successfully");
 })
 
+/*
+* Class Feed
+* */
+router.get('/:classid/feed', verifyUser, async (req, res) => {
+  let classFeed = [];
+  const [classAssessment, classAssessmentErr] = await safeAwait(prisma.classAssessment.findMany({
+    where: {
+      classId: parseInt(req.params.classid)
+    },
+    include: {
+      assessmentComments: {
+        where: {
+          deletedAt: null
+        },
+        select: {
+          id: true,
+          deletedAt: true,
+          user: {
+            select: {
+              id: true, name: true, imageURL: true
+            }
+          },
+          body: true
+        }
+      }
+    }
+  }));
+  const [posts, postsErr] = await safeAwait(prisma.classPost.findMany({
+    where: {
+      classId: parseInt(req.params.classid)
+    },
+    include: {
+      postAttachments: {
+        select: {
+          file: true
+        }
+      },
+      postComments: {
+        where: {
+          deletedAt: null
+        },
+        select: {
+          id: true,
+          deletedAt: true,
+          body: true,
+          user: {
+            select: {
+              id: true, name: true, imageURL: true
+            }
+          }
+        }
+      }
+    }
+  }))
+  const [attendance, attendanceErr] = await safeAwait(prisma.classAttendance.findMany({
+    where: {
+      classId: parseInt(req.params.classid)
+    },
+    include: {
+      attendanceRecord: {
+        include: {
+          userSession: {
+            select: {
+              createdAt: false, ipv4Address: true, ipv6Address: true, device_model: true,
+              browser_version: true, browser_family: true, os_family: true, os_version: true,
+            }
+          }
+        }
+      }
+    }
+  }))
+  const [poll, pollErr] = await safeAwait(prisma.classPoll.findMany({
+    where: {
+      classId: parseInt(req.params.classid)
+    },
+    include: {
+      pollOptions: true,
+      pollComments: {
+        where: {
+          deletedAt: null
+        },
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              imageURL: true,
+            }
+          }
+        }
+      }
+    }
+  }))
+  if (classAssessment) classFeed = classFeed.concat(classAssessment.map(assessment => ({type: "assessment", ...assessment})));
+  if (posts) classFeed = classFeed.concat(posts.map(post => ({type: "post", ...post})));
+  if (attendance) classFeed = classFeed.concat(attendance.map(attendance => ({type: "attendance", ...attendance})));
+  if (poll) classFeed = classFeed.concat(poll.map(poll => ({type: "poll", ...poll})));
+  return res.send(classFeed.sort((x,y)=> x.startingTime - y.startingTime));
+})
 
 module.exports = router;
