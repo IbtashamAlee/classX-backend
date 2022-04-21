@@ -850,6 +850,8 @@ router.put('/assessment/comment/:id', verifyUser, async (req, res) => {
 * Class Feed
 * */
 router.get('/:classid/feed', verifyUser, async (req, res) => {
+  const isPermitted = await checkPermission(req.user, '44_' + req.params.classid);
+  if (!isPermitted) return res.status(403).send("unauthorized");
   const records = req.query.records
   const page = req.query.page
   let classFeed = [];
@@ -874,10 +876,12 @@ router.get('/:classid/feed', verifyUser, async (req, res) => {
         }
       }
     },
-    skip: parseInt(page&&records ? ((page-1) * records) : 0) ,
-    take : parseInt(records ?? 10)
+    ...(page&records && {
+      skip: parseInt((page-1) * records) ,
+      take : parseInt(records)
+    })
   }));
-  const [posts, postsErr] = await safeAwait(prisma.classPost.findMany({
+  const [posts] = await safeAwait(prisma.classPost.findMany({
     where: {
       classId: parseInt(req.params.classid)
     },
@@ -903,10 +907,12 @@ router.get('/:classid/feed', verifyUser, async (req, res) => {
         }
       }
     },
-    skip: parseInt(page&&records ? ((page-1) * records) : 0) ,
-    take : parseInt(records ?? 10)
+    ...(page&records && {
+      skip: parseInt((page-1) * records) ,
+      take : parseInt(records)
+    })
   }))
-  const [attendance, attendanceErr] = await safeAwait(prisma.classAttendance.findMany({
+  const [attendance] = await safeAwait(prisma.classAttendance.findMany({
     where: {
       classId: parseInt(req.params.classid)
     },
@@ -922,10 +928,12 @@ router.get('/:classid/feed', verifyUser, async (req, res) => {
         }
       }
     },
-    skip: parseInt(page&&records ? ((page-1) * records) : 0) ,
-    take : parseInt(records ?? 10)
+    ...(page&records && {
+      skip: parseInt((page-1) * records) ,
+      take : parseInt(records)
+    })
   }))
-  const [poll, pollErr] = await safeAwait(prisma.classPoll.findMany({
+  const [poll] = await safeAwait(prisma.classPoll.findMany({
     where: {
       classId: parseInt(req.params.classid)
     },
@@ -946,8 +954,10 @@ router.get('/:classid/feed', verifyUser, async (req, res) => {
         }
       }
     },
-    skip: parseInt(page&&records ? ((page-1) * records) : 0) ,
-    take : parseInt(records ?? 10)
+    ...(page&records && {
+      skip: parseInt((page-1) * records) ,
+      take : parseInt(records)
+    })
   }))
   if (classAssessment) classFeed = classFeed.concat(classAssessment.map(assessment => ({type: "assessment", ...assessment})));
   if (posts) classFeed = classFeed.concat(posts.map(post => ({type: "post", ...post})));
