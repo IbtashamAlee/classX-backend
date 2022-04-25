@@ -12,6 +12,8 @@ const departmentRouter = require('./routes/department');
 const fileRouter = require('./routes/file');
 const classRouter = require('./routes/class');
 const assessmentRouter = require('./routes/assessment');
+const chatRouter = require('./routes/chat');
+
 const app = express();
 
 app.use(logger('dev'));
@@ -28,5 +30,6 @@ app.use('/departments', departmentRouter);
 app.use('/file', fileRouter);
 app.use('/class', classRouter);
 app.use('/assessment', assessmentRouter);
+app.use('/chat', chatRouter);
 
 module.exports = app;

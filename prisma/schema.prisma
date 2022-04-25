@@ -46,6 +46,7 @@ model User {
   notifications Notifications[]
   chatParticipants ChatParticipants[]
   chatmessage ChatMessage[]
+  chat Chat[]
   }
 
 model UserSession{
@@ -362,6 +363,8 @@ model Chat{
   id Int @id @default(autoincrement())
   createdAt DateTime @db.Timestamptz(6)
   deletedAt DateTime? @db.Timestamptz(6)
+  user User @relation(fields:[createdBy] , references :[id])
+  createdBy Int
   chatParticipants ChatParticipants[]
   chatmessage ChatMessage[]
 }
@@ -373,6 +376,7 @@ model ChatParticipants{
   user User @relation(fields: [participantId], references: [id])
   participantId Int
   removedAt DateTime? @db.Timestamptz(6)
+  @@unique ([chatId, participantId])
 }
 
 model ChatMessage{
@@ -393,6 +397,7 @@ model Notifications{
   user User @relation(fields: [userId], references: [id])
   userId Int
   body String
+  createdAt DateTime @db.Timestamptz(6)
   time_sent DateTime @db.Timestamptz(6)
   is_read Boolean
 }
