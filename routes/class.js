@@ -125,7 +125,8 @@ router.post('/:id/participants', verifyUser, async (req, res) => {
   if (!findClass) return res.status(404).send("Class not found");
   const [isPermitted, permissionErr] = await safeAwait(checkPermission(req.user, `17_${req.params.id}`));
   if (permissionErr) return res.status(409).send("unable to fetch user permissions");
-  if (!isPermitted) return res.status(403).send("not authorized")
+  if (!isPermitted) return res.status(403).send("not authorized");
+  if (!req.body.user) return res.status(409).send("users not provided");
   let participants_err = [];
   let unavailable_users = [];
   let added_participants = [];

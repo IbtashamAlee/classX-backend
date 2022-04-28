@@ -3,8 +3,10 @@ version: '3.8'
 services:
   postgres:
     image: postgres:14.1
-    restart: always
+    restart: unless-stopped
+    container_name: classXDB
     environment:
+      - POSTGRES_DB=$POSTGRES_DB
       - POSTGRES_USER=$POSTGRES_USER
       - POSTGRES_PASSWORD=$POSTGRES_PASSWORD
     volumes:
