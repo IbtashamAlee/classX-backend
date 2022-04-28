@@ -1,14 +1,9 @@
 const express = require("express");
 const router = express.Router();
-const {nanoid} = require("nanoid/async");
 
 const {PrismaClient} = require(".prisma/client");
 const safeAwait = require("../services/safe_await");
 const {verifyUser} = require("../middlewares/verifyUser");
-const {checkPermission} = require("../services/checkPermission");
-const StudentPermissions = require("../permissions/student.json");
-const TeacherPermissions = require("../permissions/teacher.json");
-const {verifySystemAdmin} = require("../middlewares/verifySystemAdmin");
 
 const prisma = new PrismaClient();
 
@@ -21,6 +16,12 @@ router.post('/', verifyUser, async (req, res) => {
     }
   }));
   if (!chat) return res.status(409).send("unable to create chat");
+  await safeAwait(prisma.chatParticipants.create({
+    data: {
+      chatId: chat.id,
+      participantId: req.user.id
+    }
+  }))
   return res.json(chat);
 })
 
@@ -31,132 +32,186 @@ router.post('/:id/participants', verifyUser, async (req, res) => {
       id: parseInt(req.params.id)
     }
   }));
-  if (!chatErr) return res.status(409).send("unable to find chat");
-  if (!req.body.user) return res.status(409).send("users not provided");
+  if (chat.createdBy !== req.user.id) return res.status(403).send("unauthorized");
+  if (!chat || chatErr) return res.status(409).send("unable to find chat");
+  if (!req.body.users) return res.status(409).send("users not provided");
   let participants_err = [];
   let unavailable_users = [];
   let added_participants = [];
   let already_participants = [];
-  for await(participant of req.body.users) {
+  for await(userMail of req.body.users) {
     const [user, userErr] = await safeAwait(prisma.user.findUnique({
         where: {
-          email: reqUser.email
+          email: userMail
         }
       })
     )
     if (!user) {
-      unavailable_users.push(reqUser)
+      unavailable_users.push(userMail)
       continue;
     }
     if (userErr) {
-      participants_err.push(reqUser);
+      participants_err.push(userMail);
       continue;
     }
-    const [alreadyParticipant] = await safeAwait(prisma.chatParticipants.findUnique({
+    const [alreadyParticipant] = await safeAwait(prisma.chatParticipants.findMany({
+      where: {
+        removedAt: null,
+        chatId: parseInt(req.params.id),
+        participantId: user.id,
+      }
+    }))
+    if (alreadyParticipant.length > 0) {
+      already_participants.push(userMail);
+      continue;
+    }
+    const [addedParticipant] = await safeAwait(prisma.chatParticipants.upsert({
       where: {
         chatId_participantId: {
           chatId: parseInt(req.params.id),
           participantId: user.id,
         }
-      }
-    }))
-    if (alreadyParticipant) {
-      already_participants.push(participant);
-      continue;
-    }
-    const [addedParticipant] = await safeAwait(prisma.chatParticipants.create({
-      data: {
+      },
+      create: {
         chatId: parseInt(req.params.id),
-        participantId: user.id
+        participantId: user.id,
+      },
+      update: {
+        removedAt: null
       }
     }))
     if (addedParticipant) {
-      added_participants.push(participant);
+      added_participants.push(userMail);
       continue;
     }
-    participants_err.push(participant);
+    participants_err.push(userMail);
   }
   return res.send({participants_err, unavailable_users, already_participants, added_participants});
 })
 
 //add message to chat
-router.post(':id/message', verifyUser , async(req,res)=>{
-  const [chat,chatErr] = await safeAwait(prisma.chat.findUnique({
-    where:{
-      id : parseInt(req.params.id)
+router.post('/:id/message', verifyUser, async (req, res) => {
+  const [chat, chatErr] = await safeAwait(prisma.chat.findUnique({
+    where: {
+      id: parseInt(req.params.id)
     }
   }))
-  if(!chat || chatErr) return res.status(409).send("chat not found");
-  const [chatParticipant,chatParticipantErr] = await safeAwait(prisma.chatParticipants.findUnique({
-    where:{
-      chatId_participantId:{
-        chatId : parseInt(req.params.id),
-        participantId : req.user.id
-      },
-      removedAt : null
+  if (!chat || chatErr) return res.status(409).send("chat not found");
+  const [chatParticipant, chatParticipantErr] = await safeAwait(prisma.chatParticipants.findMany({
+    where: {
+      chatId: parseInt(req.params.id),
+      participantId: req.user.id,
+      removedAt: null
     }
   }))
-  if(!chatParticipant || chatParticipantErr) return res.status(403).send("unauthorized");
-  const [message,messageErr] = await safeAwait(prisma.chatMessage.create({
-    data:{
-      chatId : parseInt(req.params.id),
-      senderId : req.user.id,
-      body : req.body.message,
-      timeSent : new Date(),
-      fileId : req.body.file.id
+  console.log(chatParticipantErr)
+  if (chatParticipantErr || chatParticipant?.length < 1) return res.status(403).send("unauthorized");
+  const [message, messageErr] = await safeAwait(prisma.chatMessage.create({
+    data: {
+      chatId: parseInt(req.params.id),
+      senderId: req.user.id,
+      body: req.body.message,
+      timeSent: new Date(),
+      fileId: req.body.file.id ?? null
     }
   }))
+  return res.send(message)
 })
 
 //remove a participant
-router.put('/:id/participants', verifyUser, async(req, res)=>{
+router.put('/:id/participants', verifyUser, async (req, res) => {
   const [chat, chatErr] = await safeAwait(prisma.chat.findUnique({
     where: {
       id: parseInt(req.params.id)
     }
   }));
+  if (!chat || chatErr) return res.status(409).send("unable to find chat");
+  if (!req.body.users) return res.status(409).send("users not provided");
+  if (chat.createdBy !== req.user.id) return res.status(403).send("unauthorized");
   const removed_users = [];
+  const unavailable_user = [];
   const error_removing = [];
-  if (!chatErr) return res.status(409).send("unable to find chat");
-  if (!req.body.user) return res.status(409).send("users not provided");
-  for await(user of req.body.users){
-    const [excludedParticipant] = await safeAwait([prisma.chatParticipants.update({
-      where:{
-        chatId_participantId :{
-          chatId : parseInt(req.params.id),
-          participantId : user.id
-        }
+  const not_participant = [];
+  for await(userMail of req.body.users) {
+    const [user, userErr] = await safeAwait(prisma.user.findUnique({
+      where: {
+        email: userMail
       }
-    })]);
-    if(excludedParticipant){
-      removed_users.push(user)
+    }))
+    if (!user || userErr) {
+      unavailable_user.push(userMail)
       continue;
     }
-    error_removing.push(user)
+    const [isParticipant, participantErr] = await safeAwait(prisma.chatParticipants.findUnique({
+      where: {
+        chatId_participantId: {
+          chatId: parseInt(req.params.id),
+          participantId: user.id
+        },
+      }
+    }));
+    if (!isParticipant || participantErr || isParticipant.removedAt !== null) {
+      not_participant.push(userMail);
+      continue;
+    }
+    const [excludedParticipant] = await safeAwait(prisma.chatParticipants.update({
+      where: {
+        chatId_participantId: {
+          chatId: parseInt(req.params.id),
+          participantId: user.id
+        }
+      },
+      data: {
+        removedAt: new Date()
+      }
+    }));
+    if (excludedParticipant) {
+      removed_users.push(userMail)
+      continue;
+    }
+    error_removing.push(userMail)
   }
-  return res.send({removed_users,error_removing})
+  return res.send({not_participant, unavailable_user, removed_users, error_removing})
 })
 
 //get chat
-router.get('/:id', verifyUser, async(req,res)=>{
-  const [chat,chatErr] = await safeAwait(prisma.chat.findUnique({
-    where:{
-      id : parseInt(req.params.id)
+router.get('/:id', verifyUser, async (req, res) => {
+  //checking if user is participant of requested chat
+  const [isParticipant, participantErr] = await safeAwait(prisma.chatParticipants.findUnique({
+      where: {
+        chatId_participantId: {
+          chatId: parseInt(req.params.id),
+          participantId: req.user.id
+        }
+      }
+    }
+  ))
+  if (!isParticipant || participantErr) return res.status(403).send("unauthorized");
+  const [chat, chatErr] = await safeAwait(prisma.chat.findUnique({
+    where: {
+      id: parseInt(req.params.id)
     },
-    include:{
-      chatParticipants : {
-        include : {
-          user : true
+    include: {
+      chatParticipants: {
+        where: {
+          removedAt: null
+        },
+        include: {
+          user: {
+            select: {
+              id: true, name: true, email: true, imageURL: true, userStatus: true
+            }
+          }
         }
       },
       chatmessage: {
-        include:{
-          user : true
+        include: {
+          user: true
         }
       }
     }
   }))
-  if(!chat || chatErr) return res.status(409).send("unable to fetch chat");
+  if (!chat || chatErr) return res.status(409).send("unable to fetch chat");
   return res.send(chat);
 })
 

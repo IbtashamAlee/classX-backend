@@ -78,7 +78,7 @@ model File{
   postAttachments PostAttachments[]
   questionAttachment QuestionAttachment[]
   responseAttachment ResponseAttachment[]
-  chatmessage ChatMessage?
+  chatmessage ChatMessage[]
   instituteRequestAttachment InstituteRequestAttachment[]
 }
 
