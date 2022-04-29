@@ -205,8 +205,15 @@ router.get('/:id', verifyUser, async (req, res) => {
         }
       },
       chatmessage: {
+        where:{
+          deletedAt : null
+        },
         include: {
-          user: true
+          user: {
+            select :{
+              id : true
+            }
+          }
         }
       }
     }
