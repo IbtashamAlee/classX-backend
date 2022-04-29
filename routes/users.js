@@ -58,7 +58,7 @@ router.get("/:id", verifyUser, verifySystemAdmin, async (req, res) => {
 //return all the classes of user with his embedded roles.
 router.get("/me/classes", verifyUser, async (req, res) => {
   const [classes, classesErr] = await safeAwait(prisma.$queryRaw`
-Select "Class".name                  as           name,
+      Select "Class".name                  as           name,
              "Class".description           as           description,
              "Department".name             as           department,
              "Institute".name              as           institute,
@@ -229,4 +229,5 @@ router.put("/status", verifyUser, async (req, res) => {
   if (updatedUser) return res.send("user status updated successfully")
   return res.send("unable to update user status");
 })
+
 module.exports = router;

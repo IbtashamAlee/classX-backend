@@ -76,7 +76,6 @@ router.post('/add-class', verifyUser, async (req, res) => {
         roleId: studentRole.id
       }
     })
-    console.log({permission, rolePermission})
   }
 
 
@@ -126,7 +125,8 @@ router.post('/:id/participants', verifyUser, async (req, res) => {
   if (!findClass) return res.status(404).send("Class not found");
   const [isPermitted, permissionErr] = await safeAwait(checkPermission(req.user, `17_${req.params.id}`));
   if (permissionErr) return res.status(409).send("unable to fetch user permissions");
-  if (!isPermitted) return res.status(403).send("not authorized")
+  if (!isPermitted) return res.status(403).send("not authorized");
+  if (!req.body.user) return res.status(409).send("users not provided");
   let participants_err = [];
   let unavailable_users = [];
   let added_participants = [];
@@ -202,71 +202,6 @@ router.post('/:id/participants', verifyUser, async (req, res) => {
   return res.send({participants_err, unavailable_users, already_participants, added_participants});
 })
 
-//Join class using code
-router.post('/join/:code', verifyUser, async (req, res) => {
-  const [findClass, findClassErr] = await safeAwait(prisma.class.findUnique({
-    where: {
-      code: req.params.code
-    }
-  }))
-  if (findClassErr) return res.status(409).send("unable to get class. Something went wrong");
-  if (!findClass) return res.status(404).send("Class not found");
-
-  const studentRole = await prisma.role.findUnique({
-    where: {
-      name: 'Student_' + findClass.id
-    }
-  })
-
-  const [user, userErr] = await safeAwait(prisma.user.findUnique({
-      where: {
-        email: req.user.email
-      }
-    })
-  )
-  //check already existing participant
-  const [existingParticipant] = await safeAwait(await prisma.classParticipants.findUnique({
-    where: {
-      classId_userId: {
-        classId: findClass.id,
-        userId: user.id
-      }
-    }
-  }));
-  if (existingParticipant) {
-    return res.send("Already a participant of this class");
-  }
-
-  // update userRole table and class Participants table
-  await prisma.classParticipants.upsert({
-    where: {
-      classId_userId: {
-        classId: findClass.id,
-        userId: user.id
-      }
-    },
-    create: {
-      classId: findClass.id,
-      userId: user.id
-    },
-    update: {}
-  });
-  await prisma.userRole.upsert({
-    where: {
-      roleId_userId: {
-        userId: user.id,
-        roleId: studentRole.id
-      }
-    },
-    create: {
-      userId: user.id,
-      roleId: studentRole.id
-    },
-    update: {}
-  });
-  return res.send("successfully added to the class.")
-})
-
 //Get class participants
 router.get('/:id/participants', verifyUser, async (req, res) => {
   const isPermitted = await checkPermission(req.user, '43_' + req.params.id);
@@ -326,7 +261,7 @@ router.get('/:id/participants', verifyUser, async (req, res) => {
 })
 
 /*
-* CLASS POLLS
+* POLLS
 * */
 
 //Add poll in class
@@ -344,7 +279,6 @@ router.post('/:id/poll', verifyUser, async (req, res) => {
       classId: parseInt(req.params.id)
     }
   }));
-  console.log(pollErr)
   if (pollErr) return res.status(409).send("unable to add poll");
   for await (const option of req.body.pollOptions) {
     const opt = await prisma.pollOption.create({
@@ -360,6 +294,8 @@ router.post('/:id/poll', verifyUser, async (req, res) => {
 
 //Get all polls in class
 router.get('/:id/poll', verifyUser, async (req, res) => {
+  const records = req.query.records
+  const page = req.query.page
   const isPermitted = await checkPermission(req.user, '40_' + req.params.id);
   if (!isPermitted) return res.status(403).send("not authorized")
   const [poll, pollErr] = await safeAwait(prisma.classPoll.findMany({
@@ -383,9 +319,9 @@ router.get('/:id/poll', verifyUser, async (req, res) => {
         }
       }
     },
-    ...(page && records && {
-      skip: parseInt((page - 1) * records),
-      take: parseInt(records)
+    ...(page&&records && {
+      skip: parseInt((page-1) * records) ,
+      take : parseInt(records)
     })
   }))
   if (pollErr) return res.status(409).send("unable to fetch Poll");
@@ -549,13 +485,14 @@ router.post('/:class/attendance', verifyUser, async (req, res) => {
       endingTime: req.body.endingTime ?? new Date(new Date().getTime() + 60 * 60 * 24 * 1000)
     }
   }))
-  console.log(attendanceErr)
   if (attendanceErr) return res.status(409).send("Unable to add attendance");
   return res.send(attendance);
 })
 
 //get all attendances in class
 router.get('/:class/attendance', verifyUser, async (req, res) => {
+  const records = req.query.records
+  const page = req.query.page
   const isPermitted = await checkPermission(req.user, '45_' + req.params.class);
   if (!isPermitted) return res.status(403).send("not authorized")
   const [attendance, attendanceErr] = await safeAwait(prisma.classAttendance.findMany({
@@ -574,9 +511,9 @@ router.get('/:class/attendance', verifyUser, async (req, res) => {
         }
       }
     },
-    ...(page && records && {
-      skip: parseInt((page - 1) * records),
-      take: parseInt(records)
+    ...(page&&records && {
+      skip: parseInt((page-1) * records) ,
+      take : parseInt(records)
     })
   }))
   if (attendanceErr) return res.status(409).send("unable to fetch attendance");
@@ -676,6 +613,9 @@ router.post('/:class/post', verifyUser, async (req, res) => {
 
 //fetch all posts in class
 router.get('/:id/post', verifyUser, async (req, res) => {
+  const records = req.query.records
+  const page = req.query.page
+
   const isPermitted = await checkPermission(req.user, '41_' + req.params.id);
   if (!isPermitted) return res.status(403).send("not authorized")
   const [posts, postsErr] = await safeAwait(prisma.classPost.findMany({
@@ -702,13 +642,13 @@ router.get('/:id/post', verifyUser, async (req, res) => {
             }
           }
         }
-      }}
-    ,
-      ...(page && records && {
-        skip: parseInt((page - 1) * records),
-        take: parseInt(records)
-      })
-    }))
+      }
+    },
+    ...(page&&records && {
+      skip: parseInt((page-1) * records) ,
+      take : parseInt(records)
+    })
+  }))
   if (postsErr) return res.status(409).send("Unable to fetch posts")
   return res.json(posts)
 })
@@ -770,7 +710,6 @@ router.post('/post/:id/comment', verifyUser, async (req, res) => {
       body: comment.trim()
     }
   }))
-  console.log(postCommentErr)
   if (postCommentErr) return res.status(409).send("unable to post comment");
   return res.send({postComment, message: "comment added successfully"})
 })
@@ -802,8 +741,9 @@ router.put('/post/comment/:id', verifyUser, async (req, res) => {
 
 
 /*
-* CLASS ASSESSMENTS
+* Class Assessments
 * */
+
 //get all class assessments
 router.get('/:classid/assessment', verifyUser, async (req, res) => {
   const records = req.query.records
@@ -830,15 +770,14 @@ router.get('/:classid/assessment', verifyUser, async (req, res) => {
         }
       }
     },
-    ...(page && records && {
-      skip: parseInt((page - 1) * records),
-      take: parseInt(records)
+    ...(page&&records && {
+      skip: parseInt((page-1) * records) ,
+      take : parseInt(records)
     })
   }));
   if (classAssessmentErr) return res.status(409).send("unable to fetch class assessments");
   return res.send(classAssessment)
-}
-)
+})
 
 //get specific class assessment
 router.get('/:classid/assessment/:id', verifyUser, async (req, res) => {
@@ -957,9 +896,9 @@ router.get('/:classid/feed', verifyUser, async (req, res) => {
         }
       }
     },
-    ...(page && records && {
-      skip: parseInt((page - 1) * records),
-      take: parseInt(records)
+    ...(page&&records && {
+      skip: parseInt((page-1) * records) ,
+      take : parseInt(records)
     })
   }));
   const [posts] = await safeAwait(prisma.classPost.findMany({
@@ -988,9 +927,9 @@ router.get('/:classid/feed', verifyUser, async (req, res) => {
         }
       }
     },
-    ...(page && records && {
-      skip: parseInt((page - 1) * records),
-      take: parseInt(records)
+    ...(page&&records && {
+      skip: parseInt((page-1) * records) ,
+      take : parseInt(records)
     })
   }))
   const [attendance] = await safeAwait(prisma.classAttendance.findMany({
@@ -1009,9 +948,9 @@ router.get('/:classid/feed', verifyUser, async (req, res) => {
         }
       }
     },
-    ...(page && records && {
-      skip: parseInt((page - 1) * records),
-      take: parseInt(records)
+    ...(page&&records && {
+      skip: parseInt((page-1) * records) ,
+      take : parseInt(records)
     })
   }))
   const [poll] = await safeAwait(prisma.classPoll.findMany({
@@ -1035,16 +974,16 @@ router.get('/:classid/feed', verifyUser, async (req, res) => {
         }
       }
     },
-    ...(page && records && {
-      skip: parseInt((page - 1) * records),
-      take: parseInt(records)
+    ...(page&&records && {
+      skip: parseInt((page-1) * records) ,
+      take : parseInt(records)
     })
   }))
   if (classAssessment) classFeed = classFeed.concat(classAssessment.map(assessment => ({type: "assessment", ...assessment})));
   if (posts) classFeed = classFeed.concat(posts.map(post => ({type: "post", ...post})));
   if (attendance) classFeed = classFeed.concat(attendance.map(attendance => ({type: "attendance", ...attendance})));
   if (poll) classFeed = classFeed.concat(poll.map(poll => ({type: "poll", ...poll})));
-  return res.send(classFeed.sort((x, y) => x.startingTime - y.startingTime));
+  return res.send(classFeed.sort((x,y)=> x.startingTime - y.startingTime));
 })
 
 module.exports = router;
