@@ -177,16 +177,15 @@ router.put('/:id/participants', verifyUser, async (req, res) => {
 //get chat
 router.get('/:id', verifyUser, async (req, res) => {
   //checking if user is participant of requested chat
-  const [isParticipant, participantErr] = await safeAwait(prisma.chatParticipants.findUnique({
+  const [isParticipant, participantErr] = await safeAwait(prisma.chatParticipants.findMany({
       where: {
-        chatId_participantId: {
-          chatId: parseInt(req.params.id),
-          participantId: req.user.id
-        }
+        chatId: parseInt(req.params.id),
+        participantId: req.user.id,
+        removedAt: null
       }
     }
   ))
-  if (!isParticipant || participantErr) return res.status(403).send("unauthorized");
+  if (isParticipant.length < 1 || participantErr) return res.status(403).send("unauthorized");
   const [chat, chatErr] = await safeAwait(prisma.chat.findUnique({
     where: {
       id: parseInt(req.params.id)
@@ -205,13 +204,13 @@ router.get('/:id', verifyUser, async (req, res) => {
         }
       },
       chatmessage: {
-        where:{
-          deletedAt : null
+        where: {
+          deletedAt: null
         },
         include: {
           user: {
-            select :{
-              id : true
+            select: {
+              id: true
             }
           }
         }
