@@ -15,6 +15,7 @@ const prisma = new PrismaClient();
 const sendVerification = EmailService.sendVerification;
 const resetPassword = EmailService.resetPassword;
 
+//signup
 router.post(`/signup`, signupValidation, async (req, res) => {
   let [pass] = await safeAwait(encryptPassword(req.body.password));
   const [user] = await safeAwait(
@@ -40,7 +41,6 @@ router.post(`/signup`, signupValidation, async (req, res) => {
     .catch();
   return res.status(200).send("user created successfully");
 });
-
 
 //This route processes user request for email verification
 router.get("/mail-verify/:token", async (req, res) => {
@@ -178,7 +178,7 @@ router.put("/logout", verifyUser, async (req, res) => {
   return res.send("user logged out successfully");
 });
 
-//get user's active sessions
+//get user's all sessions
 router.get("/sessions", verifyUser, async (req, res) => {
   let [sessions, sessionErr] = await safeAwait(prisma.userSession.findMany({
     where: {
@@ -189,6 +189,7 @@ router.get("/sessions", verifyUser, async (req, res) => {
   res.send(sessions);
 })
 
+//password reset request
 router.post('/password-reset', async (req, res) => {
   if (!req.body.email) return res.status(403).send("Email not provided");
   const [user, userErr] = await safeAwait(prisma.user.findUnique({
@@ -213,6 +214,7 @@ router.post('/password-reset', async (req, res) => {
   return res.send(updatedUser);
 })
 
+//change password
 router.post("/password-reset/:token", async (req, res) => {
   if (!req.body.password) return res.status(404).send("password not provided");
   const [newPassword] = await safeAwait(encryptPassword(req.body.password))
