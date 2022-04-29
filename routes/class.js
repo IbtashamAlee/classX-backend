@@ -202,6 +202,71 @@ router.post('/:id/participants', verifyUser, async (req, res) => {
   return res.send({participants_err, unavailable_users, already_participants, added_participants});
 })
 
+//Join class using code
+router.post('/join/:code', verifyUser, async (req, res) => {
+  const [findClass, findClassErr] = await safeAwait(prisma.class.findUnique({
+    where: {
+      code: req.params.code
+    }
+  }))
+  if (findClassErr) return res.status(409).send("unable to get class. Something went wrong");
+  if (!findClass) return res.status(404).send("Class not found");
+
+  const studentRole = await prisma.role.findUnique({
+    where: {
+      name: 'Student_' + findClass.id
+    }
+  })
+
+  const [user, userErr] = await safeAwait(prisma.user.findUnique({
+      where: {
+        email: req.user.email
+      }
+    })
+  )
+  //check already existing participant
+  const [existingParticipant] = await safeAwait(await prisma.classParticipants.findUnique({
+    where: {
+      classId_userId: {
+        classId: findClass.id,
+        userId: user.id
+      }
+    }
+  }));
+  if (existingParticipant) {
+    return res.send("Already a participant of this class");
+  }
+
+  // update userRole table and class Participants table
+  await prisma.classParticipants.upsert({
+    where: {
+      classId_userId: {
+        classId: findClass.id,
+        userId: user.id
+      }
+    },
+    create: {
+      classId: findClass.id,
+      userId: user.id
+    },
+    update: {}
+  });
+  await prisma.userRole.upsert({
+    where: {
+      roleId_userId: {
+        userId: user.id,
+        roleId: studentRole.id
+      }
+    },
+    create: {
+      userId: user.id,
+      roleId: studentRole.id
+    },
+    update: {}
+  });
+  return res.send("successfully added to the class.")
+})
+
 //Get class participants
 router.get('/:id/participants', verifyUser, async (req, res) => {
   const isPermitted = await checkPermission(req.user, '43_' + req.params.id);
