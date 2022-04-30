@@ -853,6 +853,28 @@ router.post('/:class/post', verifyUser, async (req, res) => {
 
 })
 
+//delete class post
+router.put('/post/:id', verifyUser, async (req, res) => {
+  const [post, postErr] = await safeAwait(prisma.classPost.findUnique({
+    where: {
+      id: parseInt(req.params.id)
+    }
+  }))
+  if (postErr || !post) return res.status(409).send("post not found");
+  if(post.createdBy !== req.user.id) return res.status(403).send("unauthorized");
+  if(post.deletedAt !== null) return res.status(409).send("post already deleted");
+  const [updatedPost, updatedPostErr] = await safeAwait(prisma.classPost.update({
+    where: {
+      id: parseInt(req.params.id)
+    },
+    data: {
+      deletedAt: new Date()
+    }
+  }))
+  if (updatedPostErr) return res.status(409).send("unable to delete class Post");
+  return res.send("post deleted sucessfully");
+})
+
 //fetch all posts in class
 router.get('/:id/post', verifyUser, async (req, res) => {
   const records = req.query.records
@@ -862,7 +884,8 @@ router.get('/:id/post', verifyUser, async (req, res) => {
   if (!isPermitted) return res.status(403).send("not authorized")
   const [posts, postsErr] = await safeAwait(prisma.classPost.findMany({
     where: {
-      classId: parseInt(req.params.id)
+      classId: parseInt(req.params.id),
+      deletedAt : null
     },
     include: {
       postAttachments: {
@@ -897,9 +920,10 @@ router.get('/:id/post', verifyUser, async (req, res) => {
 
 //fetch particular post in class
 router.get('/post/:id', verifyUser, async (req, res) => {
-  const [post, postErr] = await safeAwait(prisma.classPost.findUnique({
+  const [post, postErr] = await safeAwait(prisma.classPost.findMany({
     where: {
-      id: parseInt(req.params.id)
+      id: parseInt(req.params.id),
+      deletedAt : null
     },
     include: {
       postAttachments: {
@@ -925,20 +949,22 @@ router.get('/post/:id', verifyUser, async (req, res) => {
     }
   }))
   if (postErr) return res.status(409).send("Unable to fetch post");
-  const isPermitted = await checkPermission(req.user, '41_' + post.classId);
+  if(post.length < 1 ) return res.status(404).send("not found")
+  const isPermitted = await checkPermission(req.user, '41_' + post[0].classId);
   if (!isPermitted) return res.status(403).send("not authorized")
-  return res.json(post)
+  return res.json(post[0])
 })
 
-//comment on a poll
+//comment on a post
 router.post('/post/:id/comment', verifyUser, async (req, res) => {
   const [post, postErr] = await safeAwait(prisma.classPost.findUnique({
     where: {
       id: parseInt(req.params.id)
     }
   }))
+
   if (!post || postErr) return res.status(409).send("unable to fetch post . Post may not exist")
-  //check if ending time os overed
+  if(post.deletedAt !== null) return res.status(404).send("post not found");
   const isPermitted = await checkPermission(req.user, '34_' + post.classId);
   if (!isPermitted) return res.status(403).send("not authorized")
   const comment = req.body.comment;
@@ -969,6 +995,7 @@ router.put('/post/comment/:id', verifyUser, async (req, res) => {
   if (commentErr || !comment) return res.status(409).send("Comment not found");
   const isPermitted = await checkPermission(req.user, '35_' + comment.post.classId);
   if (comment.userId !== req.user.id || !isPermitted) return res.status(403).send("unauthorized");
+  if(comment.deletedAt !== null) return res.status(409).send("already deleted");
   const [updatedComment, updatedCommentErr] = await safeAwait(prisma.postComments.update({
     where: {
       id: parseInt(req.params.id)
@@ -1107,6 +1134,7 @@ router.put('/assessment/comment/:id', verifyUser, async (req, res) => {
   if (updatedCommentErr) return res.status(409).send("unable to delete comment");
   return res.send("comment deleted successfully");
 })
+
 
 /*
 * Class Feed
