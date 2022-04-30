@@ -28,12 +28,12 @@ router.post('/add-class', verifyUser, async (req, res) => {
     data: {
       name: className,
       description: req.body.description || '',
+      createdBy: parseInt(req.user.id),
       code: await nanoid(),
     }
   }));
 
   if (newClassErr || !newClass) return res.status(409).send("unable to create class");
-
   const [teacherRole, teacherRoleErr] = await safeAwait(prisma.role.upsert({
     where: {
       name: 'Teacher_' + newClass.id,
@@ -123,10 +123,11 @@ router.post('/:id/participants', verifyUser, async (req, res) => {
   }))
   if (findClassErr) return res.status(409).send("unable to get class. Something went wrong");
   if (!findClass) return res.status(404).send("Class not found");
+  if (findClass.deletedAt !== null) return res.status(409).send("class doesn't exist");
   const [isPermitted, permissionErr] = await safeAwait(checkPermission(req.user, `17_${req.params.id}`));
   if (permissionErr) return res.status(409).send("unable to fetch user permissions");
   if (!isPermitted) return res.status(403).send("not authorized");
-  if (!req.body.user) return res.status(409).send("users not provided");
+  if (!req.body.users) return res.status(409).send("users not provided");
   let participants_err = [];
   let unavailable_users = [];
   let added_participants = [];
@@ -202,6 +203,93 @@ router.post('/:id/participants', verifyUser, async (req, res) => {
   return res.send({participants_err, unavailable_users, already_participants, added_participants});
 })
 
+//Remove participants from class
+router.post('/:id/participants/remove', verifyUser, async (req, res) => {
+  const [findClass, findClassErr] = await safeAwait(prisma.class.findUnique({
+    where: {
+      id: parseInt(req.params.id)
+    }
+  }))
+  if (findClassErr) return res.status(409).send("unable to get class. Something went wrong");
+  if (!findClass) return res.status(404).send("Class not found");
+  if (findClass.deletedAt !== null) return res.status(409).send("class doesn't exist");
+  const [isPermitted, permissionErr] = await safeAwait(checkPermission(req.user, `18_${req.params.id}`));
+  if (permissionErr) return res.status(409).send("unable to fetch user permissions");
+  if (!isPermitted) return res.status(403).send("not authorized");
+  if (!req.body.users) return res.status(409).send("users not provided");
+  let err_removing = [];
+  let unavailable_users = [];
+  let removed_participants = [];
+  let not_participants = [];
+  const teacherRole = await prisma.role.findUnique({
+    where: {
+      name: 'Teacher_' + req.params.id
+    }
+  })
+  const studentRole = await prisma.role.findUnique({
+    where: {
+      name: 'Student_' + req.params.id
+    }
+  })
+  //considering payload in req.body.users
+  for await (const reqUser of req.body.users) {
+    const [user, userErr] = await safeAwait(prisma.user.findUnique({
+        where: {
+          email: reqUser.email
+        }
+      })
+    )
+    if (!user) {
+      unavailable_users.push(reqUser.email)
+      continue;
+    }
+    if (userErr) {
+      err_removing.push(reqUser.email);
+      continue;
+    }
+    if (findClass.createdBy === user.id) {
+      err_removing.push(reqUser.email);
+      continue;
+    }
+    //check already existing participant
+    const [existingParticipant, ERR] = await safeAwait(await prisma.classParticipants.findUnique({
+      where: {
+        classId_userId: {
+          classId: findClass.id,
+          userId: user.id
+        }
+      }
+    }));
+    console.log(existingParticipant)
+    if (!existingParticipant) {
+      not_participants.push(reqUser.email);
+      continue;
+    }
+
+    // update userRole table and class Participants table
+    await safeAwait(prisma.classParticipants.delete({
+      where: {
+        classId_userId: {
+          classId: findClass.id,
+          userId: user.id
+        }
+      }
+    }))
+
+    await safeAwait(prisma.userRole.delete({
+      where: {
+        roleId_userId: {
+          userId: user.id,
+          roleId: reqUser.role === 'Teacher' ? teacherRole.id : studentRole.id
+        }
+      }
+    }))
+
+    removed_participants.push(reqUser.email);
+  }
+  return res.send({err_removing, not_participants, unavailable_users, removed_participants});
+})
+
 //Join class using code
 router.post('/join/:code', verifyUser, async (req, res) => {
   const [findClass, findClassErr] = await safeAwait(prisma.class.findUnique({
@@ -211,7 +299,7 @@ router.post('/join/:code', verifyUser, async (req, res) => {
   }))
   if (findClassErr) return res.status(409).send("unable to get class. Something went wrong");
   if (!findClass) return res.status(404).send("Class not found");
-
+  if (findClass.deletedAt !== null) return res.status(409).send("class doesn't exist");
   const studentRole = await prisma.role.findUnique({
     where: {
       name: 'Student_' + findClass.id
@@ -277,6 +365,7 @@ router.get('/:id/participants', verifyUser, async (req, res) => {
     }
   }))
   if (existingClassErr || !existingClass) return res.status(409).send("unable to find specified class")
+  if (existingClass.deletedAt !== null) return res.status(409).send("class doesn't exist");
 
   let [participants, participantsErr] = await safeAwait(prisma.role.findMany({
     where: {
@@ -288,7 +377,7 @@ router.get('/:id/participants', verifyUser, async (req, res) => {
         select: {
           user: {
             select: {
-              id: true, name: true, userStatus: true, imageURL: true
+              id: true, email: true, name: true, userStatus: true, imageURL: true
             }
           }
         }
@@ -325,6 +414,65 @@ router.get('/:id/participants', verifyUser, async (req, res) => {
   }))
 })
 
+//Delete a class
+router.put('/:id/delete', verifyUser, async (req, res) => {
+  const [existingClass, existingClassErr] = await safeAwait(prisma.class.findUnique({
+    where: {
+      id: parseInt(req.params.id)
+    }
+  }))
+  if (!existingClass || existingClassErr) return res.status(404).send("unable to find class")
+  if (existingClass.createdBy !== req.user.id) return res.status(403).send("unauthorized. Only class owner can delete class");
+  if (existingClass.deletedAt !== null) return res.status(409).send("class already deleted");
+  const [updatedClass, updatedClassErr] = await safeAwait(prisma.class.update({
+    where: {
+      id: parseInt(req.params.id)
+    },
+    data: {
+      deletedAt: new Date()
+    }
+  }))
+  if (!updatedClass || updatedClassErr) return res.status(409).send("unable to delete class");
+  return res.send("class deleted successfully");
+})
+
+//Get deleted class
+router.get('/deleted/', verifyUser, async (req, res) => {
+  const [deletedClasses, deletedClassesErr] = await safeAwait(prisma.class.findMany({
+    where: {
+      createdBy: req.user.id,
+      NOT: {
+        deletedAt: null
+      }
+    }
+  }))
+  if (deletedClassesErr) return res.status(409).send("unable to fetch deleted classes");
+  return res.send(deletedClasses)
+})
+
+//restore a deleted class
+router.put('/:id/restore', verifyUser, async (req, res) => {
+  const [existingClass, existingClassErr] = await safeAwait(prisma.class.findUnique({
+    where: {
+      id: parseInt(req.params.id)
+    }
+  }))
+  if (!existingClass || existingClassErr) return res.status(404).send("unable to find class")
+  if (existingClass.createdBy !== req.user.id) return res.status(403).send("unauthorized. Only class owner can delete class");
+  if (existingClass.deletedAt === null) return res.status(409).send("class is not deleted");
+  const [updatedClass, updatedClassErr] = await safeAwait(prisma.class.update({
+    where: {
+      id: parseInt(req.params.id)
+    },
+    data: {
+      deletedAt: null
+    }
+  }))
+  if (!updatedClass || updatedClassErr) return res.status(409).send("unable to restore");
+  return res.send("class restored successfully");
+})
+
+
 /*
 * POLLS
 * */
@@ -357,6 +505,30 @@ router.post('/:id/poll', verifyUser, async (req, res) => {
   return res.send({poll, pollOption: req.body.pollOptions})
 })
 
+//delete a poll
+router.put('/poll/:id', verifyUser, async (req, res) => {
+  const [poll, pollErr] = await safeAwait(prisma.classPoll.findUnique({
+    where: {
+      id : parseInt(req.params.id)
+    }
+  }));
+  if (pollErr || !poll) return res.status(409).send("unable to find poll");
+  const isPermitted = await checkPermission(req.user, '24_' + poll.classId);
+  if (!isPermitted) return res.status(403).send("not authorized");
+  if(poll.deletedAt !== null) return res.status(409).send("poll deleted already");
+  console.log(poll.deletedAt)
+  const [updatedPoll, updatedPollErr] = await safeAwait(prisma.classPoll.update({
+    where: {
+      id : parseInt(req.params.id)
+    },
+    data :{
+      deletedAt : new Date()
+    }
+  }));
+  if(updatedPollErr) return res.status(409).send("unable to delete poll");
+  return res.send("poll deleted successfully");
+})
+
 //Get all polls in class
 router.get('/:id/poll', verifyUser, async (req, res) => {
   const records = req.query.records
@@ -365,7 +537,8 @@ router.get('/:id/poll', verifyUser, async (req, res) => {
   if (!isPermitted) return res.status(403).send("not authorized")
   const [poll, pollErr] = await safeAwait(prisma.classPoll.findMany({
     where: {
-      classId: parseInt(req.params.id)
+      classId: parseInt(req.params.id),
+      deletedAt : null
     },
     include: {
       pollOptions: true,
@@ -384,9 +557,9 @@ router.get('/:id/poll', verifyUser, async (req, res) => {
         }
       }
     },
-    ...(page&&records && {
-      skip: parseInt((page-1) * records) ,
-      take : parseInt(records)
+    ...(page && records && {
+      skip: parseInt((page - 1) * records),
+      take: parseInt(records)
     })
   }))
   if (pollErr) return res.status(409).send("unable to fetch Poll");
@@ -395,9 +568,10 @@ router.get('/:id/poll', verifyUser, async (req, res) => {
 
 //Get specific poll
 router.get('/poll/:pollId', verifyUser, async (req, res) => {
-  const [poll, pollErr] = await safeAwait(prisma.classPoll.findUnique({
+  const [poll, pollErr] = await safeAwait(prisma.classPoll.findMany({
     where: {
-      id: parseInt(req.params.pollId)
+      id: parseInt(req.params.pollId),
+      deletedAt : null
     },
     include: {
       pollOptions: true,
@@ -413,13 +587,13 @@ router.get('/poll/:pollId', verifyUser, async (req, res) => {
               imageURL: true,
             }
           }
-
         }
       }
     }
   }))
+  if(poll.length<1) return res.status(404).send("poll not found");
   if (pollErr) return res.status(409).send("unable to fetch Poll");
-  const isPermitted = await checkPermission(req.user, '40_' + poll.classId);
+  const isPermitted = await checkPermission(req.user, '40_' + poll[0].classId);
   if (!isPermitted) return res.status(403).send("not authorized")
   return res.send(poll)
 })
@@ -449,6 +623,7 @@ router.post('/poll/:id/vote', verifyUser, async (req, res) => {
   //throw err if poll doesn't exist
   if (!poll || pollErr) return res.send("Unable to fetch poll or poll does not exist");
   //check if ending time os overed
+  if(poll.deletedAt !== null) return res.send("The requested poll doesn't exist");
   if (new Date() - poll.endingTime > 0) return res.status(409).send("unable to vote. Voting time passed")
   //check whether requested option is valid
   if (poll.pollOptions.length < 1) return res.status(409).send("invalid option");
@@ -487,7 +662,8 @@ router.post('/poll/:id/comment', verifyUser, async (req, res) => {
     }
   }))
   if (!poll || pollErr) return res.status(409).send("unable to fetch poll . Poll may not exist")
-  //check if ending time os overed
+  if(poll.deletedAt !== null) return res.send("The requested poll doesn't exist");
+  //check if ending time is over
   if (new Date() - poll.endingTime > 0) return res.status(409).send("unable to vote. Voting time passed")
   const isPermitted = await checkPermission(req.user, '34_' + poll.classId);
   if (!isPermitted) return res.status(403).send("not authorized")
@@ -576,9 +752,9 @@ router.get('/:class/attendance', verifyUser, async (req, res) => {
         }
       }
     },
-    ...(page&&records && {
-      skip: parseInt((page-1) * records) ,
-      take : parseInt(records)
+    ...(page && records && {
+      skip: parseInt((page - 1) * records),
+      take: parseInt(records)
     })
   }))
   if (attendanceErr) return res.status(409).send("unable to fetch attendance");
@@ -636,6 +812,7 @@ router.post('/:class/attendance/:id', verifyUser, async (req, res) => {
   return res.send(newAttendanceRecord)
 })
 
+//--------------------------------------------------------------------------
 /*
 * CLASS POSTS
 * */
@@ -709,9 +886,9 @@ router.get('/:id/post', verifyUser, async (req, res) => {
         }
       }
     },
-    ...(page&&records && {
-      skip: parseInt((page-1) * records) ,
-      take : parseInt(records)
+    ...(page && records && {
+      skip: parseInt((page - 1) * records),
+      take: parseInt(records)
     })
   }))
   if (postsErr) return res.status(409).send("Unable to fetch posts")
@@ -835,9 +1012,9 @@ router.get('/:classid/assessment', verifyUser, async (req, res) => {
         }
       }
     },
-    ...(page&&records && {
-      skip: parseInt((page-1) * records) ,
-      take : parseInt(records)
+    ...(page && records && {
+      skip: parseInt((page - 1) * records),
+      take: parseInt(records)
     })
   }));
   if (classAssessmentErr) return res.status(409).send("unable to fetch class assessments");
@@ -961,9 +1138,9 @@ router.get('/:classid/feed', verifyUser, async (req, res) => {
         }
       }
     },
-    ...(page&&records && {
-      skip: parseInt((page-1) * records) ,
-      take : parseInt(records)
+    ...(page && records && {
+      skip: parseInt((page - 1) * records),
+      take: parseInt(records)
     })
   }));
   const [posts] = await safeAwait(prisma.classPost.findMany({
@@ -992,9 +1169,9 @@ router.get('/:classid/feed', verifyUser, async (req, res) => {
         }
       }
     },
-    ...(page&&records && {
-      skip: parseInt((page-1) * records) ,
-      take : parseInt(records)
+    ...(page && records && {
+      skip: parseInt((page - 1) * records),
+      take: parseInt(records)
     })
   }))
   const [attendance] = await safeAwait(prisma.classAttendance.findMany({
@@ -1013,9 +1190,9 @@ router.get('/:classid/feed', verifyUser, async (req, res) => {
         }
       }
     },
-    ...(page&&records && {
-      skip: parseInt((page-1) * records) ,
-      take : parseInt(records)
+    ...(page && records && {
+      skip: parseInt((page - 1) * records),
+      take: parseInt(records)
     })
   }))
   const [poll] = await safeAwait(prisma.classPoll.findMany({
@@ -1039,16 +1216,16 @@ router.get('/:classid/feed', verifyUser, async (req, res) => {
         }
       }
     },
-    ...(page&&records && {
-      skip: parseInt((page-1) * records) ,
-      take : parseInt(records)
+    ...(page && records && {
+      skip: parseInt((page - 1) * records),
+      take: parseInt(records)
     })
   }))
   if (classAssessment) classFeed = classFeed.concat(classAssessment.map(assessment => ({type: "assessment", ...assessment})));
   if (posts) classFeed = classFeed.concat(posts.map(post => ({type: "post", ...post})));
   if (attendance) classFeed = classFeed.concat(attendance.map(attendance => ({type: "attendance", ...attendance})));
   if (poll) classFeed = classFeed.concat(poll.map(poll => ({type: "poll", ...poll})));
-  return res.send(classFeed.sort((x,y)=> x.startingTime - y.startingTime));
+  return res.send(classFeed.sort((x, y) => x.startingTime - y.startingTime));
 })
 
 module.exports = router;

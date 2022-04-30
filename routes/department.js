@@ -12,11 +12,13 @@ const DepartmentAdminPermissions = require('../permissions/departmentAdmin.json'
 const safeAwait = require('../services/safe_await');
 const {nanoid} = require('nanoid/async');
 
+//get all departments (System Admin)
 router.get('/', verifyUser, verifySystemAdmin, async (req, res) => {
   const departments = await prisma.department.findMany();
   return res.status(200).json(departments);
 })
 
+//get specific department
 router.get('/:id', verifyUser, verifySystemAdmin, async (req, res) => {
   const department = await prisma.department.findUnique({
     where: {
@@ -26,6 +28,7 @@ router.get('/:id', verifyUser, verifySystemAdmin, async (req, res) => {
   return res.status(200).json(department);
 })
 
+//Add department Admin
 router.post('/:id/add-admin', verifyUser, async (req, res) => {
   const isPermitted = await checkPermission(req.user, '07_' + req.params.id);
   console.log(req.user, '07_' + req.params.id)
@@ -64,10 +67,11 @@ router.post('/:id/add-admin', verifyUser, async (req, res) => {
   res.send({message: "new department admin created"});
 })
 
+//new class in department
 router.post('/:id/add-class', verifyUser, async (req, res) => {
   if (!req.body.name) return res.status(409).send('class name not provided')
   const className = req.body.name.trim();
-  const [existingClass, ERR] = await safeAwait(prisma.class.findUnique({
+  const [existingClass] = await safeAwait(prisma.class.findUnique({
     where: {
       name_departmentId: {
         name: className,
@@ -85,6 +89,7 @@ router.post('/:id/add-class', verifyUser, async (req, res) => {
       name: className,
       description: req.body.description || '',
       departmentId: parseInt(req.params.id),
+      createdBy: req.user.id,
       code: await nanoid(),
     }
   }));
@@ -190,4 +195,5 @@ router.post('/:id/add-class', verifyUser, async (req, res) => {
 
   return res.json({message: "explicit permissions generated", newClass});
 })
+
 module.exports = router;

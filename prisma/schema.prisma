@@ -47,6 +47,7 @@ model User {
   chatParticipants ChatParticipants[]
   chatmessage ChatMessage[]
   chat Chat[]
+  class Class[]
   }
 
 model UserSession{
@@ -142,6 +143,8 @@ model Class{
   description String?
   department Department? @relation(fields: [departmentId], references: [id])
   departmentId Int?
+  user User @relation(fields: [createdBy], references: [id])
+  createdBy Int
   code String @db.VarChar(22) @unique
   deletedAt DateTime? @db.Timestamptz(6)
   classParticipants ClassParticipants[]
