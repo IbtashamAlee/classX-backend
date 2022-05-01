@@ -29,6 +29,7 @@ const upload = multer({
   })
 })
 
+//get download link for file
 router.get('/download-link/:key', async (req, res) => {
   return res.send(s3.getSignedUrl('getObject', {
     Bucket: process.env.AWS_BUCKET_NAME,

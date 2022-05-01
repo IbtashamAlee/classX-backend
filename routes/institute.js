@@ -9,16 +9,19 @@ const DepartmentAdminPermissions = require('../permissions/departmentAdmin.json'
 
 const {checkPermission} = require('../services/checkPermission');
 
+//get all institutes (SYSTEM ADMIN)
 router.get('/', verifyUser, verifySystemAdmin, async (req, res) => {
   const institutes = await prisma.institute.findMany();
   return res.status(200).json(institutes);
 })
 
+//get all institute requests (SYSTEM ADMIN)
 router.get('/requests', verifyUser, verifySystemAdmin, async (req, res) => {
   const requests = await prisma.instituteRequest.findMany();
   return res.status(200).json(requests);
 })
 
+//request a new isntitute
 router.post('/request', verifyUser, async (req, res) => {
   const request = await prisma.instituteRequest.create({
     data: {
@@ -30,6 +33,7 @@ router.post('/request', verifyUser, async (req, res) => {
   return res.json(request);
 })
 
+//process institute request
 router.put('/request/process/:id', verifyUser, verifySystemAdmin, async (req, res) => {
   if (!req.query.method || (req.query.method !== 'accept' && req.query.method !== 'reject'))
     return res.status(403).send("invalid request");
@@ -58,6 +62,7 @@ router.put('/request/process/:id', verifyUser, verifySystemAdmin, async (req, re
   }) : res.json(request)
 })
 
+//temporary delete a institute(SYSTEM ADMIN)
 router.put('/delete/:id', verifyUser, verifySystemAdmin, async (req, res) => {
   const institute = await prisma.institute.update({
     where: {
@@ -70,6 +75,7 @@ router.put('/delete/:id', verifyUser, verifySystemAdmin, async (req, res) => {
   res.send(institute);
 })
 
+//restore institute
 router.put('/restore/:id', verifyUser, verifySystemAdmin, async (req, res) => {
   const institute = await prisma.institute.update({
     where: {
@@ -82,6 +88,7 @@ router.put('/restore/:id', verifyUser, verifySystemAdmin, async (req, res) => {
   res.send(institute);
 })
 
+//add department to institute
 router.post('/:id/add-department', verifyUser, async (req, res) => {
   console.log(req.body.name, req.params.id)
   const isPermitted = await checkPermission(req.user, '14_' + req.params.id);
@@ -147,7 +154,7 @@ router.post('/:id/add-department', verifyUser, async (req, res) => {
   return res.send(department)
 })
 
-
+//get all departments in institute
 router.get('/:id/departments', verifyUser, async (req, res) => {
   const role = await prisma.role.findUnique({
     where: {
@@ -213,7 +220,7 @@ router.post('/:id/add-admin', verifyUser, async (req, res) => {
 })
 
 
-/*This function created an institute after accepting request
+/*This function creates an institute after accepting request
 * It adds a role and explicit permissions to database
 * The admin user is assigned the newly created role
 */
