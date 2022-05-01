@@ -48,6 +48,7 @@ model User {
   chatmessage ChatMessage[]
   chat Chat[]
   class Class[]
+  classAssessment ClassAssessment[]
   }
 
 model UserSession{
@@ -321,6 +322,8 @@ model ClassAssessment{
   startingTime DateTime @db.Timestamptz(6)
   isMultiTimer Boolean
   QuestionsToDisplay Int?
+  user User? @relation(fields: [createdBy], references : [id])
+  createdBy Int?
   questionResponse QuestionResponse[]
   assessmentComments ClassAssessmentComments[]
 }

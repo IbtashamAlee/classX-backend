@@ -812,7 +812,6 @@ router.post('/:class/attendance/:id', verifyUser, async (req, res) => {
   return res.send(newAttendanceRecord)
 })
 
-//--------------------------------------------------------------------------
 /*
 * CLASS POSTS
 * */
@@ -1008,7 +1007,7 @@ router.put('/post/comment/:id', verifyUser, async (req, res) => {
   return res.send("comment deleted successfully");
 })
 
-
+//---------------------------------------------------------
 /*
 * Class Assessments
 * */
@@ -1020,7 +1019,8 @@ router.get('/:classid/assessment', verifyUser, async (req, res) => {
 
   const [classAssessment, classAssessmentErr] = await safeAwait(prisma.classAssessment.findMany({
     where: {
-      classId: parseInt(req.params.classid)
+      classId: parseInt(req.params.classid),
+      deletedAt : null
     },
     include: {
       assessmentComments: {
@@ -1049,15 +1049,34 @@ router.get('/:classid/assessment', verifyUser, async (req, res) => {
 })
 
 //get specific class assessment
-router.get('/:classid/assessment/:id', verifyUser, async (req, res) => {
+router.get('/assessment/:id', verifyUser, async (req, res) => {
   const [classAssessment, classAssessmentErr] = await safeAwait(prisma.classAssessment.findMany({
     where: {
       id: parseInt(req.params.id),
-      classId: parseInt(req.params.classid)
+      deletedAt : null
+    },
+    include: {
+      assessmentComments: {
+        where: {
+          deletedAt: null
+        },
+        select: {
+          id: true,
+          deletedAt: true,
+          user: {
+            select: {
+              id: true, name: true, imageURL: true
+            }
+          },
+          body: true
+        }
+      }
     }
   }));
   if (classAssessmentErr) return res.status(409).send("unable to fetch class assessments");
-  return res.send(classAssessment)
+  const isPermitted = await checkPermission(req.user, '42_' + classAssessment[0].classId);
+  if (!isPermitted) return res.status(403).send("unauthorized");
+  return res.send(classAssessment[0] ?? [])
 })
 
 //assign an assessment in class
@@ -1069,6 +1088,7 @@ router.post('/:classid/assessment/:id', verifyUser, async (req, res) => {
   }))
   if (!assessment || assessmentErr) return res.status(409).send("unable to find specified assessment");
   if (assessment.createdBy !== req.user.id || !assessment.isPublic) return res.status(403).send("unauthorized");
+  if(assessment.deletedAt !== null ) return res.status(404).send("assessment not found");
   const isPermitted = await checkPermission(req.user, '28_' + req.params.classid);
   if (!isPermitted) return res.status(403).send("not authorized");
   const [classAssessment, classAssessmentErr] = await safeAwait(prisma.classAssessment.create({
@@ -1085,6 +1105,28 @@ router.post('/:classid/assessment/:id', verifyUser, async (req, res) => {
   return res.send(classAssessment);
 })
 
+//delete an assessment from class
+router.put('/assessment/:id', verifyUser, async (req, res) => {
+  const [assessment, assessmentErr] = await safeAwait(prisma.classAssessment.findUnique({
+    where: {
+      id: parseInt(req.params.id)
+    }
+  }))
+  if (assessmentErr || !assessment) return res.status(409).send("assessment not found");
+  if(assessment.createdBy !== req.user.id) return res.status(403).send("unauthorized");
+  if(assessment.deletedAt !== null) return res.status(409).send("assessment already deleted");
+  const [updatedAssessment, updatedAssessmentErr] = await safeAwait(prisma.classAssessment.update({
+    where: {
+      id: parseInt(req.params.id)
+    },
+    data: {
+      deletedAt: new Date()
+    }
+  }))
+  if (updatedAssessmentErr) return res.status(409).send("unable to delete class Assessment");
+  return res.send("assessment deleted successfully");
+})
+
 //comment on class assessment
 router.post('/assessment/:id/comment', verifyUser, async (req, res) => {
   const [classAssessment, classAssesssmentErr] = await safeAwait(prisma.classPost.findUnique({
@@ -1092,6 +1134,7 @@ router.post('/assessment/:id/comment', verifyUser, async (req, res) => {
       id: parseInt(req.params.id)
     }
   }))
+  if(classAssessment.deletedAt !== null) return res.status(404).send("assessment not found");
   if (!classAssessment || classAssesssmentErr) return res.status(409).send("unable to find specified class assessment");
   const isPermitted = await checkPermission(req.user, '34_' + classAssessment.classId);
   if (!isPermitted) return res.status(403).send("not authorized")
