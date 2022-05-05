@@ -27,6 +27,10 @@ router.post('/request', verifyUser, async (req, res) => {
     data: {
       name: req.body.name,
       instituteType: req.body.instituteType,
+      city: req.body.city,
+      country: req.body.country,
+      address: req.body.address,
+      description: req.body.description,
       adminId: req.user.id
     }
   })
@@ -230,6 +234,10 @@ async function createInstitute(request) {
       name: request.name,
       adminId: request.adminId,
       instituteType: request.instituteType,
+      city: request.city,
+      country: request.country,
+      address: request.address,
+      description: request.description,
     }
   });
   const role = await prisma.role.create({
