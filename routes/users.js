@@ -140,7 +140,7 @@ router.get('/me/institute-admin-classes', verifyUser, async (req, res) => {
       }
     }
   }))
-  if (classesErr) return res.send(409).send("unable to fetch classes");
+  if (classesErr) return res.status(409).send("unable to fetch classes");
   return res.send(classes);
 })
 
