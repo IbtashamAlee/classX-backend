@@ -751,7 +751,7 @@ router.get('/:class/attendance', verifyUser, async (req, res) => {
           },
           user: {
             select: {
-              id: true, name: true, email: true, userStatus: true
+              id: true, name: true, email: true, userStatus: true, imageURL: true
             }
           }
         }
@@ -783,7 +783,7 @@ router.get('/attendance/:id', verifyUser, async (req, res) => {
           },
           user: {
             select: {
-              id: true, name: true, email: true, userStatus: true
+              id: true, name: true, email: true, userStatus: true, imageURL: true
             }
           }
         }
