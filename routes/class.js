@@ -748,6 +748,11 @@ router.get('/:class/attendance', verifyUser, async (req, res) => {
               createdAt: false, ipv4Address: true, ipv6Address: true, device_model: true,
               browser_version: true, browser_family: true, os_family: true, os_version: true,
             }
+          },
+          user: {
+            select: {
+              id: true, name: true, email: true, userStatus: true
+            }
           }
         }
       }
@@ -774,6 +779,11 @@ router.get('/attendance/:id', verifyUser, async (req, res) => {
             select: {
               createdAt: false, ipv4Address: true, ipv6Address: true, device_model: true,
               browser_version: true, browser_family: true, os_family: true, os_version: true,
+            }
+          },
+          user: {
+            select: {
+              id: true, name: true, email: true, userStatus: true
             }
           }
         }
