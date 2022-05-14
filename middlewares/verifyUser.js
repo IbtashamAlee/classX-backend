@@ -16,7 +16,15 @@ async function verifyUser(req, res, next) {
             include: {
               role: {
                 include: {
-                  rolePermission: true
+                  rolePermission: {
+                    include: {
+                      permission: {
+                        select :{
+                          code : true
+                        }
+                      }
+                    }
+                  }
                 }
               }
             }

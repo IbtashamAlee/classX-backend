@@ -44,6 +44,19 @@ router.get("/me", verifyUser, async (req, res) => {
   return res.status(200).json({id, name, email, userStatus, imageURL});
 });
 
+//get current user permissions
+//cache in application memory at the time of login
+router.get("/me/permissions", verifyUser, async (req, res) => {
+  let permissions = []
+  req.user.userRole.map(userRole => {
+      userRole.role.rolePermission.map(p => {
+        permissions.push(p.permission.code)
+      })
+  })
+  return res.status(200).json(permissions);
+});
+
+
 //get a particular user (System Admin)
 router.get("/:id", verifyUser, verifySystemAdmin, async (req, res) => {
   const [user, userErr] = await safeAwait(prisma.user.findUnique({
