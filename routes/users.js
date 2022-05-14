@@ -115,10 +115,15 @@ router.get("/me/roles", verifyUser, async (req, res) => {
 router.get('/me/department-admin-classes', verifyUser, async (req, res) => {
   const [classes, classesErr] = await safeAwait(prisma.department.findMany({
     where: {
-      adminId: req.user.id
+      adminId: req.user.id,
+      deletedAt: null
     },
     include: {
-      class: true
+      class: {
+        where: {
+         deletedAt : null
+        }
+      }
     },
   }))
   if (classesErr) return res.status(409).send("Unable to get classes");
@@ -134,8 +139,15 @@ router.get('/me/institute-admin-classes', verifyUser, async (req, res) => {
     },
     include: {
       departments: {
+        where:{
+          deletedAt : null
+        },
         include: {
-          class: true
+          class: {
+            where :{
+              deletedAt : null
+            }
+          }
         }
       }
     }
