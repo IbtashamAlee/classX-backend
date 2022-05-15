@@ -14,7 +14,7 @@ model User {
   id Int @id @default(autoincrement())
   name  String
   userStatus String?
-  imageURL String? @db.VarChar(255)
+  imageURL String?
   last_login DateTime? @db.Timestamptz(6)
   email String @db.VarChar(255) @unique
   password String @db.VarChar(255)
@@ -26,6 +26,7 @@ model User {
   deletedAt DateTime? @db.Timestamptz(6)
   emailTokenGen DateTime? @db.Timestamptz(6)
   resetTokenGen DateTime? @db.Timestamptz(6)
+  allowEmailNotifications Boolean @default(true)
   institutes Institute[]
   departments Department[]
   file File[]
@@ -95,7 +96,7 @@ model Institute {
   city String? @db.VarChar(255)
   country String? @db.VarChar(255)
   description String?
-  imageUrl String? @db.VarChar(255)
+  imageUrl String?
   departments Department[]
   role Role[]
 }
@@ -106,6 +107,7 @@ model Department {
   institute Institute @relation(fields: [instituteId], references: [id])
   instituteId Int
   deletedAt DateTime? @db.Timestamptz(6)
+  imageUrl String?
   admin User? @relation(fields: [adminId], references: [id])
   adminId Int?
   class Class[]
@@ -122,7 +124,7 @@ model InstituteRequest{
   city String? @db.VarChar(255)
   country String? @db.VarChar(255)
   description String?
-  imageUrl String? @db.VarChar(255)
+  imageUrl String?
   acceptedAt DateTime? @db.Timestamptz(6)
   rejectedAt DateTime? @db.Timestamptz(6)
   instituteRequestAttachment InstituteRequestAttachment[]
@@ -148,6 +150,7 @@ model Class{
   createdBy Int
   code String @db.VarChar(22) @unique
   deletedAt DateTime? @db.Timestamptz(6)
+  imageUrl String?
   classParticipants ClassParticipants[]
   role Role[]
   classPost ClassPost[]
