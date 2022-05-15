@@ -232,13 +232,13 @@ router.put("/unblock/:id", verifyUser, verifySystemAdmin, async (req, res) => {
 
 //change profile image
 router.put("/profile-pic", verifyUser, async (req, res) => {
-  if (!req.body.imageURL) return res.status(409).send("url not provided");
+  if (!req.body.imageUrl) return res.status(409).send("url not provided");
   const [updatedUser] = await safeAwait(prisma.user.update({
     where: {
       id: req.user.id
     },
     data: {
-      imageURL: req.body.imageURL
+      imageUrl: req.body.imageUrl
     }
   }))
   if (updatedUser) return res.send("profile image updated successfully")

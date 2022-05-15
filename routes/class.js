@@ -1188,6 +1188,21 @@ router.put('/assessment/comment/:id', verifyUser, async (req, res) => {
   return res.send("comment deleted successfully");
 })
 
+//add/update class profile pic
+router.put("/:id/profile-pic", verifyUser, async (req, res) => {
+  if (!req.body.imageUrl) return res.status(409).send("url not provided");
+  const [updatedClass] = await safeAwait(prisma.class.update({
+    where: {
+      id: parseInt(req.params.id)
+    },
+    data: {
+      imageUrl: req.body.imageUrl
+    }
+  }))
+  console.log(updatedClass)
+  if (updatedClass) return res.send("class image updated successfully")
+  return res.send("unable to update class image");
+})
 
 /*
 * Class Feed

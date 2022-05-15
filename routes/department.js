@@ -196,4 +196,19 @@ router.post('/:id/add-class', verifyUser, async (req, res) => {
   return res.json({message: "explicit permissions generated", newClass});
 })
 
+//add/update department profile pic
+router.put("/:id/profile-pic", verifyUser, async (req, res) => {
+  if (!req.body.imageUrl) return res.status(409).send("url not provided");
+  const [updatedDepartment] = await safeAwait(prisma.department.update({
+    where: {
+      id: parseInt(req.params.id)
+    },
+    data: {
+      imageUrl: req.body.imageUrl
+    }
+  }))
+  if (updatedDepartment) return res.send("department image updated successfully")
+  return res.send("unable to update department image");
+})
+
 module.exports = router;

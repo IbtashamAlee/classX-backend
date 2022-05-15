@@ -8,6 +8,7 @@ const InstituteAdminPermissions = require('../permissions/instituteAdmin.json');
 const DepartmentAdminPermissions = require('../permissions/departmentAdmin.json');
 
 const {checkPermission} = require('../services/checkPermission');
+const safeAwait = require("../services/safe_await");
 
 //get all institutes (SYSTEM ADMIN)
 router.get('/', verifyUser, verifySystemAdmin, async (req, res) => {
@@ -223,6 +224,20 @@ router.post('/:id/add-admin', verifyUser, async (req, res) => {
   return res.send(userRole);
 })
 
+//add/update institute profile pic
+router.put("/:id/profile-pic", verifyUser, async (req, res) => {
+  if (!req.body.imageUrl) return res.status(409).send("url not provided");
+  const [updatedInstitute] = await safeAwait(prisma.institute.update({
+    where: {
+      id: parseInt(req.params.id)
+    },
+    data: {
+      imageUrl: req.body.imageUrl
+    }
+  }))
+  if (updatedInstitute) return res.send("institute image updated successfully")
+  return res.send("unable to update institute image");
+})
 
 /*This function creates an institute after accepting request
 * It adds a role and explicit permissions to database
