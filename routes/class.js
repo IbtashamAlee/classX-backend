@@ -358,6 +358,7 @@ router.post('/join/:code', verifyUser, async (req, res) => {
 //Get class participants
 router.get('/:id/participants', verifyUser, async (req, res) => {
   const isPermitted = await checkPermission(req.user, '43_' + req.params.id);
+  console.log(isPermitted)
   if (!isPermitted) return res.status(403).send("not authorized")
   const [existingClass, existingClassErr] = await safeAwait(prisma.class.findUnique({
     where: {
@@ -377,13 +378,14 @@ router.get('/:id/participants', verifyUser, async (req, res) => {
         select: {
           user: {
             select: {
-              id: true, email: true, name: true, userStatus: true, imageURL: true
+              id: true, email: true, name: true, userStatus: true, imageUrl: true
             }
           }
         }
       }
     }
   }))
+  console.log(participantsErr)
   if (participantsErr) return res.send("unable to fetch participants");
   if (existingClass.departmentId) {
     const [departmentAdmin, departmentAdminErr] = await safeAwait(prisma.role.findMany({
@@ -751,7 +753,7 @@ router.get('/:class/attendance', verifyUser, async (req, res) => {
           },
           user: {
             select: {
-              id: true, name: true, email: true, userStatus: true, imageURL: true
+              id: true, name: true, email: true, userStatus: true, imageUrl: true
             }
           }
         }
@@ -783,7 +785,7 @@ router.get('/attendance/:id', verifyUser, async (req, res) => {
           },
           user: {
             select: {
-              id: true, name: true, email: true, userStatus: true, imageURL: true
+              id: true, name: true, email: true, userStatus: true, imageUrl: true
             }
           }
         }

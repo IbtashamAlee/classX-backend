@@ -20,7 +20,7 @@ async function createSystemAdminRole() {
             data: {
                 name: per.name,
                 code: per.code
-            }
+            },
         })
         const rolePermission = await prisma.rolePermission.create({
             data: {
@@ -57,7 +57,7 @@ async function makeSystemAdmin(email) {
 
 
 createSystemAdminRole().then(() => {
-    makeSystemAdmin("faseehahmad00@gmail.com")
+    makeSystemAdmin("admin@gmail.com")
         .then((email) => {
             console.log(email + " user now has admin previleges");
         })

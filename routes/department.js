@@ -208,7 +208,7 @@ router.put("/:id/profile-pic", verifyUser, async (req, res) => {
     }
   }))
   if (updatedDepartment) return res.send("department image updated successfully")
-  return res.send("unable to update department image");
+  return res.status(409).send("unable to update department image");
 })
 
 module.exports = router;

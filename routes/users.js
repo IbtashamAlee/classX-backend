@@ -74,6 +74,7 @@ router.get("/me/classes", verifyUser, async (req, res) => {
       Select "Class".id as id,
             "Class".name                  as           name,
              "Class".description           as           description,
+             "Class"."imageUrl"               as          imageUrl,
              "Department".name             as           department,
              "Institute".name              as           institute,
              "ClassParticipants"."classId" as           id,
@@ -132,6 +133,11 @@ router.get('/me/department-admin-classes', verifyUser, async (req, res) => {
       deletedAt: null
     },
     include: {
+      institute:{
+        select:{
+          name : true
+        }
+      },
       class: {
         where: {
          deletedAt : null
