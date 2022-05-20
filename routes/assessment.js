@@ -128,7 +128,7 @@ router.post("/", verifyUser, async (req, res) => {
   for await (question of req.body.questions) {
     const [newQuestion] = await safeAwait(prisma.question.create({
       data: {
-        statment: question.statment,
+        statement: question.statement,
         questionScore: question.score,
         duration: question.duration,
         assessmentId: assessment.id
