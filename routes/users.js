@@ -47,13 +47,14 @@ router.get("/me", verifyUser, async (req, res) => {
 //get current user permissions
 //cache in application memory at the time of login
 router.get("/me/permissions", verifyUser, async (req, res) => {
+  const classId = parseInt(req.query.classId)
   let permissions = []
   req.user.userRole.map(userRole => {
       userRole.role.rolePermission.map(p => {
         permissions.push(p.permission.code)
       })
   })
-  return res.status(200).json(permissions);
+  return res.status(200).json(classId ? permissions.filter(p=>p.includes(`_${classId}`)) : permissions);
 });
 
 
