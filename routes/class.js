@@ -399,7 +399,7 @@ router.get('/:id/participants', verifyUser, async (req, res) => {
           select: {
             user: {
               select: {
-                id: true, name: true, userStatus: true, imageURL: true
+                id: true, name: true, userStatus: true, imageUrl: true
               }
             }
           }
@@ -586,7 +586,7 @@ router.get('/poll/:pollId', verifyUser, async (req, res) => {
             select: {
               id: true,
               name: true,
-              imageURL: true,
+              imageUrl: true,
             }
           }
         }
@@ -914,7 +914,7 @@ router.get('/:id/post', verifyUser, async (req, res) => {
           body: true,
           user: {
             select: {
-              id: true, name: true, imageURL: true
+              id: true, name: true, imageUrl: true
             }
           }
         }
@@ -951,7 +951,7 @@ router.get('/post/:id', verifyUser, async (req, res) => {
           deletedAt: true,
           user: {
             select: {
-              id: true, name: true, imageURL: true
+              id: true, name: true, imageUrl: true
             }
           },
           body: true
@@ -1044,7 +1044,7 @@ router.get('/:classid/assessment', verifyUser, async (req, res) => {
           deletedAt: true,
           user: {
             select: {
-              id: true, name: true, imageURL: true
+              id: true, name: true, imageUrl: true
             }
           },
           body: true
@@ -1077,7 +1077,7 @@ router.get('/assessment/:id', verifyUser, async (req, res) => {
           deletedAt: true,
           user: {
             select: {
-              id: true, name: true, imageURL: true
+              id: true, name: true, imageUrl: true
             }
           },
           body: true
@@ -1229,7 +1229,7 @@ router.get('/:classid/feed', verifyUser, async (req, res) => {
           deletedAt: true,
           user: {
             select: {
-              id: true, name: true, imageURL: true
+              id: true, name: true, imageUrl: true
             }
           },
           body: true
@@ -1261,7 +1261,7 @@ router.get('/:classid/feed', verifyUser, async (req, res) => {
           body: true,
           user: {
             select: {
-              id: true, name: true, imageURL: true
+              id: true, name: true, imageUrl: true
             }
           }
         }
@@ -1308,7 +1308,7 @@ router.get('/:classid/feed', verifyUser, async (req, res) => {
             select: {
               id: true,
               name: true,
-              imageURL: true,
+              imageUrl: true,
             }
           }
         }
