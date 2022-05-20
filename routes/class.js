@@ -553,7 +553,7 @@ router.get('/:id/poll', verifyUser, async (req, res) => {
             select: {
               id: true,
               name: true,
-              imageURL: true,
+              imageUrl: true,
             }
           }
         }
