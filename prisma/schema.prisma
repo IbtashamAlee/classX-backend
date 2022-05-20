@@ -210,7 +210,7 @@ model ClassPoll{
   createdBy Int
   startingTime DateTime @db.Timestamptz(6)
   endingTime DateTime @db.Timestamptz(6)
-  statment String
+  statement String
   class Class @relation(fields: [classId], references: [id])
   classId Int
   deletedAt DateTime? @db.Timestamptz(6)

@@ -484,13 +484,13 @@ router.post('/:id/poll', verifyUser, async (req, res) => {
   const isPermitted = await checkPermission(req.user, '22_' + req.params.id);
   if (!isPermitted) return res.status(403).send("not authorized")
   if (req.body.pollOptions.length < 2) return res.status(409).send("minimum 2 options required");
-  if (!req.body.statment) return res.status(409).send("No statement provided");
+  if (!req.body.statement) return res.status(409).send("No statement provided");
   const [poll, pollErr] = await safeAwait(prisma.classPoll.create({
     data: {
       createdBy: req.user.id,
       startingTime: req.body.startingTime ?? new Date(),
       endingTime: req.body.endingTime ?? new Date(new Date().getTime() + 60 * 60 * 24 * 1000),
-      statment: req.body.statment,
+      statement: req.body.statement,
       classId: parseInt(req.params.id)
     }
   }));
