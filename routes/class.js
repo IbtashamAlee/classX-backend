@@ -1234,6 +1234,12 @@ router.get('/:classid/feed', verifyUser, async (req, res) => {
           },
           body: true
         }
+      },
+      assessment: {
+        select: {
+          name: true,
+          body: true
+        }
       }
     },
     ...(page && records && {
