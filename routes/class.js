@@ -1323,7 +1323,7 @@ router.get('/:classid/feed', verifyUser, async (req, res) => {
   if (posts) classFeed = classFeed.concat(posts.map(post => ({type: "post", ...post})));
   if (attendance) classFeed = classFeed.concat(attendance.map(attendance => ({type: "attendance", ...attendance})));
   if (poll) classFeed = classFeed.concat(poll.map(poll => ({type: "poll", ...poll})));
-  return res.send(classFeed.sort((x, y) => x.startingTime - y.startingTime));
+  return res.send(classFeed.sort((x, y) => y.startingTime - x.startingTime));
 })
 
 module.exports = router;
