@@ -20,8 +20,8 @@ router.get("/", verifyUser, async (req, res) => {
         },
         include: {
           questionAttachment: {
-            where:{
-              deletedAt : null
+            where: {
+              deletedAt: null
             },
             include: {
               file: true,
@@ -54,8 +54,8 @@ router.get("/public", verifyUser, async (req, res) => {
         },
         include: {
           questionAttachment: {
-            where:{
-              deletedAt : null
+            where: {
+              deletedAt: null
             },
             include: {
               file: true
@@ -72,6 +72,115 @@ router.get("/public", verifyUser, async (req, res) => {
   }))
   if (assessmentsErr) return res.status(409).send("unable to fetch assessments");
   return res.send(assessments);
+});
+
+//fork a public assessment
+router.get("/:id/fork", verifyUser, async (req, res) => {
+  let [assessment, assessmentErr] = await safeAwait(prisma.assessment.findMany({
+    where: {
+      id: parseInt(req.params.id),
+      isPublic: true
+    },
+    include: {
+      question: {
+        where: {
+          deletedAt: null
+        },
+        include: {
+          questionAttachment: {
+            where: {
+              deletedAt: null
+            },
+            include: {
+              file: true
+            }
+          },
+          option: {
+            where: {
+              deletedAt: null
+            }
+          }
+        }
+      }
+    }
+  }))
+  if (!assessment || assessmentErr) return res.status(409).send("assessment not found");
+  // return res.send(assessment);
+  console.log(assessment)
+  assessment = assessment[0]
+
+  const [forkedAssessment, forkedAssessmentErr] = await safeAwait(prisma.assessment.create({
+    data: {
+      name: assessment.name + ' (2)',
+      body: assessment.body ?? " ",
+      isPublic: req.body.isPublic ?? true,
+      createdBy: req.user.id,
+      createdAt: new Date()
+    },
+    include: {
+      question: {
+        include: {
+          questionAttachment: true,
+          option: true
+        }
+      }
+    }
+  }));
+  if (!assessment || assessmentErr) return res.status(409).send("unable to fork");
+  for await (question of assessment.question) {
+    const [newQuestion, newQuestionErr] = await safeAwait(prisma.question.create({
+      data: {
+        statement: question.statement,
+        questionScore: question.questionScore,
+        duration: question.duration,
+        assessmentId: forkedAssessment.id
+      }
+    }))
+    if (newQuestion) {
+      if (question?.questionAttachment?.length > 0) {
+        for await(attachment of question.questionAttachment) {
+          await prisma.questionAttachment.create({
+            data: {
+              questionId: newQuestion.id,
+              fileId: attachment.file.id
+            }
+          })
+        }
+      }
+      if (question.option.length > 0) {
+        for await(option of question.option) {
+          await prisma.option.create({
+            data: {
+              questionId: newQuestion.id,
+              value: option.value,
+              isCorrect: option.isCorrect
+            }
+          })
+        }
+      }
+    }
+  }
+  return res.send({
+    message: "The following assessment is saved successfully",
+    assessment: await prisma.assessment.findUnique({
+      where: {
+        id: forkedAssessment.id
+      },
+      include: {
+        question: {
+          include: {
+            questionAttachment: {
+              include: {
+                file: true
+              }
+            },
+            option: true
+          }
+        }
+      }
+    })
+  })
+
 });
 
 //delete an assessment
@@ -112,8 +221,8 @@ router.get("/:id", verifyUser, async (req, res) => {
         },
         include: {
           questionAttachment: {
-            where:{
-              deletedAt : null
+            where: {
+              deletedAt: null
             },
             include: {
               file: true
@@ -181,7 +290,7 @@ router.post('/:id/question', async (req, res) => {
           })
         }
       }
-      if(question.options.length > 0) {
+      if (question.options.length > 0) {
         for await(option of question.options) {
           await prisma.option.create({
             data: {
@@ -213,7 +322,6 @@ router.put('/:id/question/:questionId', async (req, res) => {
       duration: req.body.question.duration,
     }
   }))
-  console.log(newQuestionErr)
   if (!newQuestion || newQuestionErr) return res.status(409).send("unable to update question");
   if (req.body.question?.files?.length > 0) {
     for await(file of req.body.question.files) {
@@ -225,7 +333,7 @@ router.put('/:id/question/:questionId', async (req, res) => {
       })
     }
   }
-  if(req.body.question.options.length > 0 ) {
+  if (req.body.question.options.length > 0) {
     for await(option of req.body.question.options) {
       await prisma.option.create({
         data: {
@@ -321,5 +429,6 @@ router.put('/:id/question/:questionId/attachment/:attachmentId', async (req, res
   if (!deletedAttachment || deletedAttachmentErr) return res.status(409).send("unable to remove attachment");
   return res.send("assessment removed successfully");
 })
+
 
 module.exports = router;
