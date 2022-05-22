@@ -40,8 +40,8 @@ router.get("/", verifyUser, verifySystemAdmin, async (req, res) => {
 
 //get current user
 router.get("/me", verifyUser, async (req, res) => {
-  const {id, name, email, userStatus, imageURL} = req.user;
-  return res.status(200).json({id, name, email, userStatus, imageURL});
+  const {id, name, email, userStatus, imageUrl} = req.user;
+  return res.status(200).json({id, name, email, userStatus, imageUrl});
 });
 
 //get current user permissions
