@@ -54,7 +54,7 @@ router.get("/me/permissions", verifyUser, async (req, res) => {
         permissions.push(p.permission.code)
       })
   })
-  return res.status(200).json(classId ? permissions.filter(p=>p.includes(`_${classId}`)) : permissions);
+  return res.status(200).json(permissions);
 });
 
 

@@ -78,6 +78,7 @@ model File{
   createdAt DateTime
   uploaded User @relation(fields: [uploadedBy],references: [id])
   uploadedBy Int
+  deletedAt DateTime? @db.Timestamptz(6)
   postAttachments PostAttachments[]
   questionAttachment QuestionAttachment[]
   responseAttachment ResponseAttachment[]
@@ -265,7 +266,7 @@ model Assessment{
 
 model Question{
   id Int @id @default(autoincrement())
-  statment String
+  statement String
   assessment Assessment @relation(fields: [assessmentId], references: [id])
   assessmentId Int
   questionScore Int
@@ -305,6 +306,7 @@ model QuestionAttachment{
   questionId Int
   file File @relation(fields: [fileId], references: [id])
   fileId Int
+  deletedAt DateTime? @db.Timestamptz(6)
 }
 
 model ResponseAttachment{
@@ -313,7 +315,9 @@ model ResponseAttachment{
   questionResponseId Int
   file File @relation(fields: [fileId], references: [id])
   fileId Int
+  deletedAt DateTime? @db.Timestamptz(6)
 }
+
 model ClassAssessment{
   id Int @id @default(autoincrement())
   class Class @relation(fields: [classId], references: [id])
