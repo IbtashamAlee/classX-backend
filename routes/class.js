@@ -1124,6 +1124,7 @@ router.post('/:classid/assessment/:id', verifyUser, async (req, res) => {
       assessmentId: assessment.id,
       allowResubmission: req.body.allowResubmission ?? false,
       startingTime: req.body.startingTime ?? new Date(),
+      endingTime: req.body.endingTime ??  new Date(new Date().getTime() + 60 * 60 * 24 * 1000),
       isMultiTimer: req.body.isMultiTimer ?? false,
       QuestionsToDisplay: req.body.questionsToDisplay ?? null
     }
@@ -1208,9 +1209,31 @@ router.put('/assessment/comment/:id', verifyUser, async (req, res) => {
 //Attempt assessments
 //add question response in assessment
 //calculate question score on run -
-router.post('/:id/question/:questionId/response', async (req, res) => {
+router.post('/:classId/assessment/:id/question/:questionId/response', async (req, res) => {
+  const [classAssessment,classAssessmentErr] = await safeAwait(prisma.classAssessment.findMany({
+    where:{
+      id : parseInt(req.params.id),
+      deletedAt: null
+    },
+    include :{
+      assessment :{
+        include :{
+          question : {
+            where : {
+              id : parseInt(req.params.questionId)
+            }
+          }
+        }
+      }
+    }
+  }))
+  if(!classAssessment || classAssessment.length < 1 || classAssessmentErr) return res.status(404).send("not found");
+  console.log(classAssessment)
+  if(classAssessment[0].assessment.question[0].id === parseInt(req.params.questionId)){
 
+  }
 })
+
 
 /*
 * Class Feed
@@ -1337,5 +1360,7 @@ router.get('/:classid/feed', verifyUser, async (req, res) => {
   if (poll) classFeed = classFeed.concat(poll.map(poll => ({type: "poll", ...poll})));
   return res.send(classFeed.sort((x, y) => y.startingTime - x.startingTime));
 })
+
+
 
 module.exports = router;

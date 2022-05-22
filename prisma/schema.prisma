@@ -327,6 +327,7 @@ model ClassAssessment{
   deletedAt DateTime? @db.Timestamptz(6)
   allowResubmission Boolean
   startingTime DateTime @db.Timestamptz(6)
+  endingTime DateTime @db.Timestamptz(6)
   isMultiTimer Boolean
   QuestionsToDisplay Int?
   user User? @relation(fields: [createdBy], references : [id])

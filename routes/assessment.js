@@ -150,6 +150,7 @@ router.post("/", verifyUser, async (req, res) => {
 
 //QUESTIONS
 //add a question in assessment
+//new question
 router.post('/:id/question', async (req, res) => {
   const addedQuestions = []
   const failedQuestions = []
@@ -180,14 +181,16 @@ router.post('/:id/question', async (req, res) => {
           })
         }
       }
-      for await(option of question.options) {
-        await prisma.option.create({
-          data: {
-            questionId: newQuestion.id,
-            value: option.value,
-            isCorrect: option.isCorrect
-          }
-        })
+      if(question.options.length > 0) {
+        for await(option of question.options) {
+          await prisma.option.create({
+            data: {
+              questionId: newQuestion.id,
+              value: option.value,
+              isCorrect: option.isCorrect
+            }
+          })
+        }
       }
     }
   }
@@ -222,14 +225,16 @@ router.put('/:id/question/:questionId', async (req, res) => {
       })
     }
   }
-  for await(option of req.body.question.options) {
-    await prisma.option.create({
-      data: {
-        questionId: newQuestion.id,
-        value: option.value,
-        isCorrect: option.isCorrect
-      }
-    })
+  if(req.body.question.options.length > 0 ) {
+    for await(option of req.body.question.options) {
+      await prisma.option.create({
+        data: {
+          questionId: newQuestion.id,
+          value: option.value,
+          isCorrect: option.isCorrect
+        }
+      })
+    }
   }
   await safeAwait(prisma.question.update({
     where: {
