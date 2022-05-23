@@ -96,10 +96,10 @@ router.get("/me/classes", verifyUser, async (req, res) => {
       ORDER BY "Institute".id
   `)
   if (classesErr) return res.status(409).send({message: 'Unable to fetch classes', err: classesErr});
-  return res.send(classes)
-  // return res.json(classes.map(c => {
-  //   return {...c, role: c.role.split('_')[0]}
-  // }))
+  // return res.send(classes)
+  return res.json(classes.map(c => {
+    return {...c, role: c.role.split('_')[0]}
+  }))
 })
 
 //get current user roles
@@ -147,7 +147,11 @@ router.get('/me/department-admin-classes', verifyUser, async (req, res) => {
     },
   }))
   if (classesErr) return res.status(409).send("Unable to get classes");
-  return res.send(classes);
+  return res.json(classes.map(d => {
+    return {...d,class:d.class.map((c)=>{
+      return {...c, role: "DepartmentAdmin"}
+    })}
+  }))
 })
 
 //get classes for institute Admin
@@ -173,7 +177,13 @@ router.get('/me/institute-admin-classes', verifyUser, async (req, res) => {
     }
   }))
   if (classesErr) return res.status(409).send("unable to fetch classes");
-  return res.send(classes);
+  return res.send(classes.map((i => {
+    return {...i,departments:i.departments.map(d =>{
+      return {...d,class:d.class.map(c=>{
+          return {...c,role:"InstituteAdmin"}
+        })}
+      })}
+  })))
 })
 
 //block a user
