@@ -75,7 +75,7 @@ router.get("/public", verifyUser, async (req, res) => {
 });
 
 //fork a public assessment
-router.get("/:id/fork", verifyUser, async (req, res) => {
+router.post("/:id/fork", verifyUser, async (req, res) => {
   let [assessment, assessmentErr] = await safeAwait(prisma.assessment.findMany({
     where: {
       id: parseInt(req.params.id),
