@@ -753,7 +753,7 @@ router.get('/:class/attendance', verifyUser, async (req, res) => {
   const page = req.query.page
   const isPermitted = await checkPermission(req.user, '45_' + req.params.class);
   if (!isPermitted) return res.status(403).send("not authorized")
-  const [attendance, attendanceErr] = await safeAwait(prisma.classAttendance.findMany({
+  let [attendance, attendanceErr] = await safeAwait(prisma.classAttendance.findMany({
     where: {
       classId: parseInt(req.params.class)
     },
@@ -779,6 +779,17 @@ router.get('/:class/attendance', verifyUser, async (req, res) => {
       take: parseInt(records)
     })
   }))
+  let isPresent = [];
+  attendance.map(a =>{
+    a.attendanceRecord.map(record=>{
+      if(record.userId === req.user.id) {
+        isPresent.push(a.id)
+      }
+    })
+  })
+  attendance = attendance.map(a =>{
+    return isPresent.includes(a.id)? {...a,isPresent:true} : {...a}
+  });
   if (attendanceErr) return res.status(409).send("unable to fetch attendance");
   return res.send(attendance);
 })
@@ -1307,7 +1318,7 @@ router.get('/:classid/feed', verifyUser, async (req, res) => {
       take: parseInt(records)
     })
   }))
-  const [attendance] = await safeAwait(prisma.classAttendance.findMany({
+  let [attendance] = await safeAwait(prisma.classAttendance.findMany({
     where: {
       classId: parseInt(req.params.classid)
     },
@@ -1328,6 +1339,7 @@ router.get('/:classid/feed', verifyUser, async (req, res) => {
       take: parseInt(records)
     })
   }))
+
   const [poll] = await safeAwait(prisma.classPoll.findMany({
     where: {
       classId: parseInt(req.params.classid)
@@ -1354,6 +1366,17 @@ router.get('/:classid/feed', verifyUser, async (req, res) => {
       take: parseInt(records)
     })
   }))
+  let isPresent = [];
+  attendance.map(a =>{
+    a.attendanceRecord.map(record=>{
+      if(record.userId === req.user.id) {
+        isPresent.push(a.id)
+      }
+    })
+  })
+  attendance = attendance.map(a =>{
+    return isPresent.includes(a.id)? {...a,isPresent:true} : {...a}
+  });
   if (classAssessment) classFeed = classFeed.concat(classAssessment.map(assessment => ({type: "assessment", ...assessment})));
   if (posts) classFeed = classFeed.concat(posts.map(post => ({type: "post", ...post})));
   if (attendance) classFeed = classFeed.concat(attendance.map(attendance => ({type: "attendance", ...attendance})));
