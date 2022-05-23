@@ -580,6 +580,14 @@ router.get('/:id/poll', verifyUser, async (req, res) => {
     })
   }))
   if (pollErr) return res.status(409).send("unable to fetch Poll");
+  totalVotes = [];
+
+  poll.map(p=>{
+    p.pollOptions.map(opt=>{
+        totalVotes += opt.votes
+      })
+  })
+  return res.send({...poll[0],totalVotes})
   return res.send(poll)
 })
 
@@ -612,7 +620,19 @@ router.get('/poll/:pollId', verifyUser, async (req, res) => {
   if (pollErr) return res.status(409).send("unable to fetch Poll");
   const isPermitted = await checkPermission(req.user, '40_' + poll[0].classId);
   if (!isPermitted) return res.status(403).send("not authorized")
-  return res.send(poll)
+  totalVotes = 0;
+  poll[0].pollOptions.map(opt=>{
+    totalVotes += opt.votes
+  })
+  const [pollOptionSelection] = await safeAwait(prisma.pollOptionSelection.findUnique({
+    where:{
+      userId_pollId:{
+        userId : req.user.id,
+        pollId : poll[0].id
+      }
+    }
+  }))
+  return pollOptionSelection ? res.send({...poll[0],totalVotes,hasParticipated:true}) : res.send({...poll[0],totalVotes})
 })
 
 //casting a vote in poll
