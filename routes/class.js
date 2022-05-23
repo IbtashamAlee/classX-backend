@@ -1369,8 +1369,19 @@ router.get('/:classid/feed', verifyUser, async (req, res) => {
       take: parseInt(records)
     })
   }))
+  let isPresent = [];
+  attendance.map(a =>{
+    a.attendanceRecord.map(record=>{
+      if(record.userId === req.user.id) {
+        isPresent.push(a.id)
+      }
+    })
+  })
+  attendance = attendance.map(a =>{
+    return isPresent.includes(a.id)? {...a,isPresent:true} : {...a}
+  });
 
-  const [poll] = await safeAwait(prisma.classPoll.findMany({
+  let [poll] = await safeAwait(prisma.classPoll.findMany({
     where: {
       classId: parseInt(req.params.classid)
     },
@@ -1389,6 +1400,11 @@ router.get('/:classid/feed', verifyUser, async (req, res) => {
             }
           }
         }
+      },
+      pollOptionSelection: {
+        select :{
+          userId : true
+        }
       }
     },
     ...(page && records && {
@@ -1396,17 +1412,18 @@ router.get('/:classid/feed', verifyUser, async (req, res) => {
       take: parseInt(records)
     })
   }))
-  let isPresent = [];
-  attendance.map(a =>{
-    a.attendanceRecord.map(record=>{
-      if(record.userId === req.user.id) {
-        isPresent.push(a.id)
-      }
-    })
+  poll = poll.map(p=>{
+    return {...p,pollOptionSelection:p.pollOptionSelection.map(opt => opt.userId)}
   })
-  attendance = attendance.map(a =>{
-    return isPresent.includes(a.id)? {...a,isPresent:true} : {...a}
-  });
+  poll = poll.map(p=>{
+    totalVotes = 0
+    hasParticipated = (p.pollOptionSelection.includes(req.user.id))
+    p.pollOptions.map(opt=>{
+      totalVotes += parseInt(opt.votes)
+    })
+    return {...p,totalVotes,hasParticipated : hasParticipated}
+  })
+
   if (classAssessment) classFeed = classFeed.concat(classAssessment.map(assessment => ({type: "assessment", ...assessment})));
   if (posts) classFeed = classFeed.concat(posts.map(post => ({type: "post", ...post})));
   if (attendance) classFeed = classFeed.concat(attendance.map(attendance => ({type: "attendance", ...attendance})));
