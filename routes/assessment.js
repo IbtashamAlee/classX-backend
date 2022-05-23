@@ -268,8 +268,8 @@ router.post('/:id/question', async (req, res) => {
       data: {
         statement: question.statement,
         assessmentId: parseInt(req.params.id),
-        questionScore: question.score,
-        duration: question.duration,
+        questionScore: parseInt(question.score),
+        duration: parseInt(question.duration),
       },
       include: {
         option: true
