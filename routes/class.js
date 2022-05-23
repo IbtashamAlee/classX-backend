@@ -818,7 +818,7 @@ router.get('/:class/attendance', verifyUser, async (req, res) => {
     })
   })
   attendance = attendance.map(a =>{
-    return isPresent.includes(a.id)? {...a,isPresent:true} : {...a}
+    return isPresent.includes(a.id)? {...a,isPresent:true} : {...a,isPresent:false}
   });
   if (attendanceErr) return res.status(409).send("unable to fetch attendance");
   return res.send(attendance);
@@ -826,7 +826,7 @@ router.get('/:class/attendance', verifyUser, async (req, res) => {
 
 //get specific attendance in class
 router.get('/attendance/:id', verifyUser, async (req, res) => {
-  const [attendance, attendanceErr] = await safeAwait(prisma.classAttendance.findUnique({
+  let [attendance, attendanceErr] = await safeAwait(prisma.classAttendance.findUnique({
     where: {
       id: parseInt(req.params.id)
     },
@@ -852,6 +852,13 @@ router.get('/attendance/:id', verifyUser, async (req, res) => {
   if (attendanceErr) return res.status(409).send("unable to fetch attendance");
   const isPermitted = await checkPermission(req.user, '45_' + attendance.classId);
   if (!isPermitted) return res.status(403).send("not authorized")
+  let isPresent = false;
+  attendance.attendanceRecord.map(record=>{
+      if(record.userId === req.user.id) {
+        isPresent = true
+      }
+    })
+  attendance = {...attendance,isPresent}
   return res.send(attendance);
 })
 
@@ -1378,7 +1385,7 @@ router.get('/:classid/feed', verifyUser, async (req, res) => {
     })
   })
   attendance = attendance.map(a =>{
-    return isPresent.includes(a.id)? {...a,isPresent:true} : {...a}
+    return isPresent.includes(a.id)? {...a,isPresent:true} : {...a,isPresent:false}
   });
 
   let [poll] = await safeAwait(prisma.classPoll.findMany({
