@@ -552,7 +552,7 @@ router.get('/:id/poll', verifyUser, async (req, res) => {
   const page = req.query.page
   const isPermitted = await checkPermission(req.user, '40_' + req.params.id);
   if (!isPermitted) return res.status(403).send("not authorized")
-  const [poll, pollErr] = await safeAwait(prisma.classPoll.findMany({
+  let [poll, pollErr] = await safeAwait(prisma.classPoll.findMany({
     where: {
       classId: parseInt(req.params.id),
       deletedAt : null
@@ -572,6 +572,11 @@ router.get('/:id/poll', verifyUser, async (req, res) => {
             }
           }
         }
+      },
+      pollOptionSelection: {
+        select :{
+          userId : true
+        }
       }
     },
     ...(page && records && {
@@ -580,14 +585,18 @@ router.get('/:id/poll', verifyUser, async (req, res) => {
     })
   }))
   if (pollErr) return res.status(409).send("unable to fetch Poll");
-  totalVotes = [];
 
-  poll.map(p=>{
-    p.pollOptions.map(opt=>{
-        totalVotes += opt.votes
-      })
+  poll = poll.map(p=>{
+    return {...p,pollOptionSelection:p.pollOptionSelection.map(opt => opt.userId)}
   })
-  return res.send({...poll[0],totalVotes})
+  poll = poll.map(p=>{
+    totalVotes = 0
+    hasParticipated = (p.pollOptionSelection.includes(req.user.id))
+    p.pollOptions.map(opt=>{
+        totalVotes += parseInt(opt.votes)
+      })
+    return {...p,totalVotes,hasParticipated : hasParticipated}
+  })
   return res.send(poll)
 })
 
@@ -632,7 +641,8 @@ router.get('/poll/:pollId', verifyUser, async (req, res) => {
       }
     }
   }))
-  return pollOptionSelection ? res.send({...poll[0],totalVotes,hasParticipated:true}) : res.send({...poll[0],totalVotes})
+  return pollOptionSelection ? res.send({...poll[0],totalVotes,hasParticipated:true}) :
+    res.send({...poll[0],totalVotes,hasParticipated : false})
 })
 
 //casting a vote in poll
