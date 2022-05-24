@@ -7,6 +7,7 @@ const {nanoid} = require("nanoid/async");
 const {verifyUser} = require("../middlewares/verifyUser");
 const {PrismaClient} = require("@prisma/client");
 const prisma = new PrismaClient();
+const safeAwait  = require('../services/safe_await')
 
 const s3 = new aws.S3({
   accessKeyId: process.env.AWS_ACCESS_KEY_ID,
@@ -76,4 +77,15 @@ router.post('/multiple', verifyUser, upload.array('file', 5), async function (re
   return res.status(404).send("files not found");
 })
 
+//get user's files
+router.get('/', verifyUser, async (req, res)=>{
+  const [files,filesErr] = await safeAwait(prisma.file.findMany({
+    where:{
+      uploadedBy: req.user.id,
+      deletedAt : null
+    }
+  }))
+  if(filesErr) return res.status(409).send("unable to fetch files. Something went wrong")
+  return res.send(files)
+})
 module.exports = router;
