@@ -174,6 +174,47 @@ router.put('/:id/participants', verifyUser, async (req, res) => {
   return res.send({not_participant, unavailable_user, removed_users, error_removing})
 })
 
+
+//get all user chats
+router.get('/conversations', verifyUser, async (req, res) => {
+  let [chat, chatErr] = await safeAwait(prisma.chatParticipants.findMany({
+      where:{
+        participantId : req.user.id
+      },
+      include:{
+        chat:{
+          include:{
+            chatParticipants: {
+              include : {
+                user: {
+                  select:{
+                    name : true,
+                    imageUrl : true
+                  }
+                }
+              }
+            },
+            chatmessage: {
+              orderBy:{
+                timeSent : 'desc'
+              },
+              take: 1
+            }
+          }
+
+        }
+      }
+    })
+  )
+  console.log(chatErr)
+  if (!chat || chatErr) return res.status(409).send("unable to fetch chat");
+  chat  = chat.map(p=>{
+      return {chatId:p.chat.id,userName:p.chat.chatParticipants.filter(ptc => ptc.participantId !== req.user.id)[0],
+          lastMessage:p.chat.chatmessage.body}
+  })
+  return res.send(chat);
+})
+
 //get chat
 router.get('/:id', verifyUser, async (req, res) => {
   //checking if user is participant of requested chat
@@ -220,5 +261,8 @@ router.get('/:id', verifyUser, async (req, res) => {
   if (!chat || chatErr) return res.status(409).send("unable to fetch chat");
   return res.send(chat);
 })
+
+
+
 
 module.exports = router;
