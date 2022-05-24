@@ -1214,7 +1214,8 @@ router.post('/:classid/assessment/:id', verifyUser, async (req, res) => {
       startingTime: req.body.startingTime ?? new Date(),
       endingTime: req.body.endingTime ?? new Date(new Date().getTime() + 60 * 60 * 24 * 1000),
       isMultiTimer: req.body.isMultiTimer ?? false,
-      QuestionsToDisplay: req.body.questionsToDisplay ?? null
+      QuestionsToDisplay: req.body.questionsToDisplay ?? null,
+      createdBy : req.user.id
     }
   }))
   if (classAssessmentErr) return res.status(409).send("unable to add assessment to class");
