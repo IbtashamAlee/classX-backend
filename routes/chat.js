@@ -206,11 +206,11 @@ router.get('/conversations', verifyUser, async (req, res) => {
       }
     })
   )
-  console.log(chatErr)
+  console.log(chat)
   if (!chat || chatErr) return res.status(409).send("unable to fetch chat");
   chat  = chat.map(p=>{
       return {chatId:p.chat.id,userName:p.chat.chatParticipants.filter(ptc => ptc.participantId !== req.user.id)[0],
-          lastMessage:p.chat.chatmessage.body}
+      lastMessage:p.chat?.chatmessage[0]?.body}
   })
   return res.send(chat);
 })
