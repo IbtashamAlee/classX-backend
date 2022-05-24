@@ -1202,7 +1202,7 @@ router.post('/:classid/assessment/:id', verifyUser, async (req, res) => {
     }
   }))
   if (!assessment || assessmentErr) return res.status(409).send("unable to find specified assessment");
-  if (assessment.createdBy !== req.user.id || !assessment.isPublic) return res.status(403).send("unauthorized");
+  if (assessment.createdBy !== req.user.id && !assessment.isPublic) return res.status(403).send("unauthorized");
   if (assessment.deletedAt !== null) return res.status(404).send("assessment not found");
   const isPermitted = await checkPermission(req.user, '28_' + req.params.classid);
   if (!isPermitted) return res.status(403).send("not authorized");
