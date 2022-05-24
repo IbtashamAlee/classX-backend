@@ -217,6 +217,7 @@ router.get('/conversations', verifyUser, async (req, res) => {
 
 //get chat
 router.get('/:id', verifyUser, async (req, res) => {
+  console.log(req.params.id)
   //checking if user is participant of requested chat
   const [isParticipant, participantErr] = await safeAwait(prisma.chatParticipants.findMany({
       where: {
@@ -239,7 +240,7 @@ router.get('/:id', verifyUser, async (req, res) => {
         include: {
           user: {
             select: {
-              id: true, name: true, email: true, imageURL: true, userStatus: true
+              id: true, name: true, email: true, imageUrl: true, userStatus: true
             }
           }
         }
@@ -258,6 +259,7 @@ router.get('/:id', verifyUser, async (req, res) => {
       }
     }
   }))
+  console.log(chatErr)
   if (!chat || chatErr) return res.status(409).send("unable to fetch chat");
   return res.send(chat);
 })
