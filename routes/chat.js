@@ -227,7 +227,7 @@ router.get('/:id', verifyUser, async (req, res) => {
       }
     }
   ))
-  if (isParticipant.length < 1 || participantErr) return res.status(403).send("unauthorized");
+  if (isParticipant?.length < 1 || participantErr) return res.status(403).send("unauthorized");
   const [chat, chatErr] = await safeAwait(prisma.chat.findUnique({
     where: {
       id: parseInt(req.params.id)

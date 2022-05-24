@@ -35,7 +35,7 @@ router.get('/download-link/:key', async (req, res) => {
   return res.send(s3.getSignedUrl('getObject', {
     Bucket: process.env.AWS_BUCKET_NAME,
     Key: req.params.key, //filename
-    Expires: 120 //time to expire in seconds
+    Expires: 1000 //time to expire in seconds
   }))
 })
 
