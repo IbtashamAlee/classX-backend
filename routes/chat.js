@@ -112,7 +112,7 @@ router.post('/:id/message', verifyUser, async (req, res) => {
       senderId: req.user.id,
       body: req.body.message,
       timeSent: new Date(),
-      fileId: req.body.file.id ?? null
+      fileId: req.body.file?.id ?? null
     }
   }))
   return res.send(message)
