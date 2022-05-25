@@ -8,7 +8,7 @@ const safeAwait = require('../services/safe_await');
 
 //get public users
 router.get("/public", verifyUser, async (req, res) => {
-  const query = req.query.search.toLowerCase();
+  const query = req.query.search?.toLowerCase() ?? ' ';
   const [users, usersErr] = await safeAwait(prisma.user.findMany({
     where:{
       name:{
