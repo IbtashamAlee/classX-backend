@@ -13,5 +13,32 @@ services:
       - postgres:/var/lib/postgresql/data
     ports:
       - '5432:5432'
+    networks:
+      - bull
+
+  cache:
+    image: redis:7.0.0
+    restart: always
+    ports:
+      - '6379:6379'
+    volumes:
+      - cache:/data
+    networks:
+      - bull
+
+  bullx:
+    build:
+      context: backgroundJobs
+      dockerfile: Dockerfile
+    networks:
+      - bull
+    env_file:
+      - .env
+
+
 volumes:
   postgres:
+  cache:
+
+networks:
+  bull:

@@ -12,6 +12,7 @@
     "aws-sdk": "^2.1077.0",
     "bcrypt": "^5.0.1",
     "body-parser": "^1.19.2",
+    "bull": "^4.8.3",
     "cookie-parser": "~1.4.4",
     "cors": "^2.8.5",
     "debug": "~2.6.9",

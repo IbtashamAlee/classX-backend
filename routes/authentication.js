@@ -2,11 +2,12 @@ const express = require("express");
 const router = express.Router();
 const parser = require("ua-parser-js");
 const randomstring = require("randomstring");
+const Bull = require("bull");
 
 const {PrismaClient} = require(".prisma/client");
 const safeAwait = require('../services/safe_await');
 const {verifyUser} = require("../middlewares/verifyUser");
-const EmailService = require('../services/email-service');
+const EmailService = require('../backgroundJobs/email-service');
 const {encryptPassword, verifyPassword} = require("../models/users");
 const {verifySystemAdmin} = require("../middlewares/verifySystemAdmin");
 const {signupValidation, loginValidation} = require("../middlewares/userValidation");
@@ -37,8 +38,10 @@ router.post(`/signup`, signupValidation, async (req, res) => {
     },
   }));
   if (newUserErr) return res.status(409).send("unable to create user");
-  sendVerification(req.body.name, newUser.email, emailVerificationToken, newUser.id)
-    .catch();
+  // sendVerification(req.body.name, newUser.email, emailVerificationToken, newUser.id)
+  //   .catch();
+  const signupVerificationQueue = new Bull('signup-verification');
+  await signupVerificationQueue.add({name:newUser.name,mail:newUser.email,token:newUser.emailToken,userId: newUser.id})
   return res.status(200).send("user created successfully");
 });
 

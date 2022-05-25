@@ -1,11 +1,13 @@
 const Bull = require("bull");
-const EmailService = require('../services/email-service');
+const EmailService = require('./email-service');
 const sendVerification = EmailService.sendVerification;
 
 const consumer = function() {
-  const signupVerificationQueue = new Bull('signup-verification');
+  console.log("hello")
+  const signupVerificationQueue = new Bull('signup-verification', 'bullx');
   signupVerificationQueue.process(async function(job) {
     const {data} = job
+    console.log(data)
     await sendVerification(data.name, data.mail, data.token, data.userId)
       .then(()=>console.log("verification email sent successfully"))
       .catch((e)=>console.log(e))
