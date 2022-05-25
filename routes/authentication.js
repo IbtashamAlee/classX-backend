@@ -38,10 +38,10 @@ router.post(`/signup`, signupValidation, async (req, res) => {
     },
   }));
   if (newUserErr) return res.status(409).send("unable to create user");
-  // sendVerification(req.body.name, newUser.email, emailVerificationToken, newUser.id)
-  //   .catch();
-  const signupVerificationQueue = new Bull('signup-verification');
-  await signupVerificationQueue.add({name:newUser.name,mail:newUser.email,token:newUser.emailToken,userId: newUser.id})
+  sendVerification(req.body.name, newUser.email, emailVerificationToken, newUser.id)
+    .catch();
+  // const signupVerificationQueue = new Bull('signup-verification');
+  // await signupVerificationQueue.add({name:newUser.name,mail:newUser.email,token:newUser.emailToken,userId: newUser.id})
   return res.status(200).send("user created successfully");
 });
 
