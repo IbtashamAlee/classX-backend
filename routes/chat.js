@@ -174,9 +174,9 @@ router.put('/:id/participants', verifyUser, async (req, res) => {
   return res.send({not_participant, unavailable_user, removed_users, error_removing})
 })
 
-
 //get all user chats
 router.get('/conversations', verifyUser, async (req, res) => {
+  const query = req.query.search?.toLowerCase() ?? ''
   let [chat, chatErr] = await safeAwait(prisma.chatParticipants.findMany({
       where:{
         participantId : req.user.id
@@ -211,6 +211,8 @@ router.get('/conversations', verifyUser, async (req, res) => {
   chat  = chat.map(p=>{
       return {chatId:p.chat.id,userName:p.chat.chatParticipants.filter(ptc => ptc.participantId !== req.user.id)[0],
       lastMessage:p.chat?.chatmessage[0]?.body}
+  }).filter(c=> {
+    return c.userName.user.name.includes(query)
   })
   return res.send(chat);
 })
