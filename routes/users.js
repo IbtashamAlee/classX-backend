@@ -8,14 +8,13 @@ const safeAwait = require('../services/safe_await');
 
 //get public users
 router.get("/public", verifyUser, async (req, res) => {
-  const query = req.query.search?.toLowerCase() ?? ' ';
+  const query = req.query.search?.toLowerCase() ?? '';
   const [users, usersErr] = await safeAwait(prisma.user.findMany({
-    where:{
-      name:{
-        contains : `${query}`
+    where: {
+      name: {
+        contains: `${query}`
       }
-    },
-    select: {
+    }, select: {
       id: true, name: true, userStatus: true, imageUrl: true, email: true
     },
   }))
@@ -29,8 +28,7 @@ router.get("/public/:id", verifyUser, async (req, res) => {
   const [user, userErr] = await safeAwait(prisma.user.findUnique({
     where: {
       id: parseInt(req.params.id)
-    },
-    select: {
+    }, select: {
       id: true, name: true, userStatus: true, imageURL: true, email: true
     },
   }));
@@ -57,9 +55,9 @@ router.get("/me/permissions", verifyUser, async (req, res) => {
   const classId = parseInt(req.query.classId)
   let permissions = []
   req.user.userRole.map(userRole => {
-      userRole.role.rolePermission.map(p => {
-        permissions.push(p.permission.code)
-      })
+    userRole.role.rolePermission.map(p => {
+      permissions.push(p.permission.code)
+    })
   })
   return res.status(200).json(permissions);
 });
@@ -79,19 +77,19 @@ router.get("/:id", verifyUser, verifySystemAdmin, async (req, res) => {
 //return all the classes of user with his embedded roles.
 router.get("/me/classes", verifyUser, async (req, res) => {
   const [classes, classesErr] = await safeAwait(prisma.$queryRaw`
-      Select "Class".id as id,
-            "Class".name                  as           name,
+      Select "Class".id                    as           id,
+             "Class".name                  as           name,
              "Class".description           as           description,
-             "Class"."imageUrl"               as          imageUrl,
+             "Class"."imageUrl"            as           imageUrl,
              "Department".name             as           department,
              "Institute".name              as           institute,
              "ClassParticipants"."classId" as           id,
-    
+
              (Select "Role".name
               from "Role"
                        INNER JOIN "UserRole" ON "Role".id = "UserRole"."roleId"
               Where "Role"."classId" = "Class".id
-                AND "userId" = ${parseInt(req.user.id)}  LIMIT 1 )
+                AND "userId" = ${parseInt(req.user.id)} LIMIT 1 )
         as role
       from "Class"
           INNER JOIN "ClassParticipants"
@@ -127,8 +125,7 @@ router.get("/me/roles", verifyUser, async (req, res) => {
     .filter((r) => r.userRole.length > 0)
     .map(r => {
       const name = r.name.split('_')[0];
-      if (!role_arr.includes(name))
-        role_arr.push(name)
+      if (!role_arr.includes(name)) role_arr.push(name)
     })
   return res.send(role_arr);
 });
@@ -137,27 +134,26 @@ router.get("/me/roles", verifyUser, async (req, res) => {
 router.get('/me/department-admin-classes', verifyUser, async (req, res) => {
   const [classes, classesErr] = await safeAwait(prisma.department.findMany({
     where: {
-      adminId: req.user.id,
-      deletedAt: null
-    },
-    include: {
-      institute:{
-        select:{
-          name : true
+      adminId: req.user.id, deletedAt: null
+    }, include: {
+      institute: {
+        select: {
+          name: true
         }
-      },
-      class: {
+      }, class: {
         where: {
-         deletedAt : null
+          deletedAt: null
         }
       }
     },
   }))
   if (classesErr) return res.status(409).send("Unable to get classes");
   return res.json(classes.map(d => {
-    return {...d,class:d.class.map((c)=>{
-      return {...c, role: "DepartmentAdmin"}
-    })}
+    return {
+      ...d, class: d.class.map((c) => {
+        return {...c, role: "DepartmentAdmin"}
+      })
+    }
   }))
 })
 
@@ -165,18 +161,15 @@ router.get('/me/department-admin-classes', verifyUser, async (req, res) => {
 router.get('/me/institute-admin-classes', verifyUser, async (req, res) => {
   const [classes, classesErr] = await safeAwait(prisma.institute.findMany({
     where: {
-      adminId: req.user.id,
-      deletedAt : null
-    },
-    include: {
+      adminId: req.user.id, deletedAt: null
+    }, include: {
       departments: {
-        where:{
-          deletedAt : null
-        },
-        include: {
+        where: {
+          deletedAt: null
+        }, include: {
           class: {
-            where :{
-              deletedAt : null
+            where: {
+              deletedAt: null
             }
           }
         }
@@ -185,11 +178,15 @@ router.get('/me/institute-admin-classes', verifyUser, async (req, res) => {
   }))
   if (classesErr) return res.status(409).send("unable to fetch classes");
   return res.send(classes.map((i => {
-    return {...i,departments:i.departments.map(d =>{
-      return {...d,class:d.class.map(c=>{
-          return {...c,role:"InstituteAdmin"}
-        })}
-      })}
+    return {
+      ...i, departments: i.departments.map(d => {
+        return {
+          ...d, class: d.class.map(c => {
+            return {...c, role: "InstituteAdmin"}
+          })
+        }
+      })
+    }
   })))
 })
 
@@ -199,8 +196,7 @@ router.put("/block/:id", verifyUser, verifySystemAdmin, async (req, res) => {
   const [user, userErr] = await safeAwait(prisma.user.findUnique({
     where: {
       id: parseInt(req.params.id),
-    },
-    include: {
+    }, include: {
       userRole: {
         include: {
           role: {
@@ -223,14 +219,12 @@ router.put("/block/:id", verifyUser, verifySystemAdmin, async (req, res) => {
     const hasAdminRole = user.userRole.filter(t => {
       return t.roleId === Adminrole.id
     })
-    if (hasAdminRole.length > 0)
-      return res.status(403).send("User is System Admin.Not permitted to block this User.");
+    if (hasAdminRole.length > 0) return res.status(403).send("User is System Admin.Not permitted to block this User.");
   }
   const [updatedUser, updateErr] = await safeAwait(prisma.user.update({
     where: {
       id: user.id
-    },
-    data: {
+    }, data: {
       deletedAt: new Date()
     }
   }))
@@ -260,8 +254,7 @@ router.put("/profile-pic", verifyUser, async (req, res) => {
   const [updatedUser] = await safeAwait(prisma.user.update({
     where: {
       id: req.user.id
-    },
-    data: {
+    }, data: {
       imageUrl: req.body.imageUrl
     }
   }))
@@ -276,8 +269,7 @@ router.put("/status", verifyUser, async (req, res) => {
   const [updatedUser] = await safeAwait(prisma.user.update({
     where: {
       id: req.user.id
-    },
-    data: {
+    }, data: {
       userStatus: req.body.status
     }
   }))
