@@ -212,7 +212,7 @@ router.get('/conversations', verifyUser, async (req, res) => {
       return {chatId:p.chat.id,userName:p.chat.chatParticipants.filter(ptc => ptc.participantId !== req.user.id)[0],
       lastMessage:p.chat?.chatmessage[0]?.body}
   }).filter(c=> {
-    return c.userName.user.name.includes(query)
+    return c.userName.user.name.toLowerCase().includes(query)
   })
   return res.send(chat);
 })
