@@ -12,7 +12,8 @@ router.get("/public", verifyUser, async (req, res) => {
   const [users, usersErr] = await safeAwait(prisma.user.findMany({
     where: {
       name: {
-        contains: `${query}`
+        contains: `${query}`,
+        mode: 'insensitive',
       }
     }, select: {
       id: true, name: true, userStatus: true, imageUrl: true, email: true
