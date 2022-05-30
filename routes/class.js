@@ -578,7 +578,7 @@ router.get('/:id/poll', verifyUser, async (req, res) => {
           userId: true
         }
       },
-      user : {
+      user: {
         select: {
           imageUrl: true, name: true
         }
@@ -628,7 +628,7 @@ router.get('/poll/:pollId', verifyUser, async (req, res) => {
           }
         }
       },
-      user : {
+      user: {
         select: {
           imageUrl: true, name: true
         }
@@ -813,7 +813,7 @@ router.get('/:class/attendance', verifyUser, async (req, res) => {
           }
         }
       },
-      user : {
+      user: {
         select: {
           imageUrl: true, name: true
         }
@@ -861,7 +861,7 @@ router.get('/attendance/:id', verifyUser, async (req, res) => {
           }
         }
       },
-      user : {
+      user: {
         select: {
           imageUrl: true, name: true
         }
@@ -1002,7 +1002,7 @@ router.get('/:id/post', verifyUser, async (req, res) => {
           }
         }
       },
-      user : {
+      user: {
         select: {
           imageUrl: true, name: true
         }
@@ -1045,11 +1045,11 @@ router.get('/post/:id', verifyUser, async (req, res) => {
           body: true
         }
       },
-    user : {
-      select: {
-        imageUrl: true, name: true
+      user: {
+        select: {
+          imageUrl: true, name: true
+        }
       }
-    }
     }
   }))
   if (postErr) return res.status(409).send("Unable to fetch post");
@@ -1143,7 +1143,7 @@ router.get('/:classid/assessment', verifyUser, async (req, res) => {
           body: true
         }
       },
-      user : {
+      user: {
         select: {
           imageUrl: true, name: true
         }
@@ -1166,6 +1166,16 @@ router.get('/assessment/:id', verifyUser, async (req, res) => {
       deletedAt: null
     },
     include: {
+      assessment: {
+        include: {
+          question: {
+            include: {
+              option: true
+            }
+          }
+
+        },
+      },
       assessmentComments: {
         where: {
           deletedAt: null
@@ -1181,7 +1191,7 @@ router.get('/assessment/:id', verifyUser, async (req, res) => {
           body: true
         }
       },
-      user : {
+      user: {
         select: {
           imageUrl: true, name: true
         }
@@ -1189,6 +1199,23 @@ router.get('/assessment/:id', verifyUser, async (req, res) => {
     }
   }));
   if (!classAssessment[0] || classAssessmentErr) return res.status(409).send("unable to fetch class assessments");
+  const totalQuestions = classAssessment[0].assessment.question.length
+  const toDisplay = classAssessment[0].QuestionsToDisplay
+  const rand_arr = []
+  const questions = classAssessment[0].assessment.question
+  const shortListed = []
+  if (toDisplay < totalQuestions) {
+    for (let i = 0; i < totalQuestions; i++) {
+      i < toDisplay ? rand_arr.push(true) : rand_arr.push(false)
+    }
+    rand_arr.sort(() => Math.random() - 0.5)
+    for (let i = 0; i < questions.length; i++) {
+      if (rand_arr[i]) {
+        shortListed.push(questions[i])
+      }
+    }
+    classAssessment[0].assessment.question = shortListed;
+  }
   const isPermitted = await checkPermission(req.user, '42_' + classAssessment[0].classId);
   if (!isPermitted) return res.status(403).send("unauthorized");
   return res.send(classAssessment[0] ?? [])
@@ -1215,7 +1242,7 @@ router.post('/:classid/assessment/:id', verifyUser, async (req, res) => {
       endingTime: req.body.endingTime ?? new Date(new Date().getTime() + 60 * 60 * 24 * 1000),
       isMultiTimer: req.body.isMultiTimer ?? false,
       QuestionsToDisplay: req.body.questionsToDisplay ?? null,
-      createdBy : req.user.id
+      createdBy: req.user.id
     }
   }))
   if (classAssessmentErr) return res.status(409).send("unable to add assessment to class");
