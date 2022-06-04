@@ -721,7 +721,6 @@ router.post('/poll/:id/comment', verifyUser, async (req, res) => {
   if (!poll || pollErr) return res.status(409).send("unable to fetch poll . Poll may not exist")
   if (poll.deletedAt !== null) return res.send("The requested poll doesn't exist");
   //check if ending time is over
-  if (new Date() - poll.endingTime > 0) return res.status(409).send("unable to vote. Voting time passed")
   const isPermitted = await checkPermission(req.user, '34_' + poll.classId);
   if (!isPermitted) return res.status(403).send("not authorized")
   const comment = req.body.comment;
@@ -1201,20 +1200,11 @@ router.get('/assessment/:id', verifyUser, async (req, res) => {
   if (!classAssessment[0] || classAssessmentErr) return res.status(409).send("unable to fetch class assessments");
   const totalQuestions = classAssessment[0].assessment.question.length
   const toDisplay = classAssessment[0].QuestionsToDisplay
-  const rand_arr = []
-  const questions = classAssessment[0].assessment.question
-  const shortListed = []
   if (toDisplay < totalQuestions) {
-    for (let i = 0; i < totalQuestions; i++) {
-      i < toDisplay ? rand_arr.push(true) : rand_arr.push(false)
-    }
-    rand_arr.sort(() => Math.random() - 0.5)
-    for (let i = 0; i < questions.length; i++) {
-      if (rand_arr[i]) {
-        shortListed.push(questions[i])
-      }
-    }
-    classAssessment[0].assessment.question = shortListed;
+    classAssessment[0].assessment.question =
+      classAssessment[0].assessment.question
+        .sort(() => Math.random() - 0.6)
+        .slice(0,toDisplay)
   }
   const isPermitted = await checkPermission(req.user, '42_' + classAssessment[0].classId);
   if (!isPermitted) return res.status(403).send("unauthorized");
@@ -1337,6 +1327,13 @@ router.post('/:classId/assessment/:id/question/:questionId/response', async (req
           question: {
             where: {
               id: parseInt(req.params.questionId)
+            },
+            include : {
+              option : {
+                where:{
+                  isCorrect : true
+                }
+              }
             }
           }
         }
@@ -1344,8 +1341,10 @@ router.post('/:classId/assessment/:id/question/:questionId/response', async (req
     }
   }))
   if (!classAssessment || classAssessment.length < 1 || classAssessmentErr) return res.status(404).send("not found");
-  console.log(classAssessment)
-  if (classAssessment[0].assessment.question[0].id === parseInt(req.params.questionId)) {
+  const questionOptions = (classAssessment[0]?.assessment?.question[0]?.option)
+
+  return res.send(classAssessment)
+  for await(const option of req.body.option){
 
   }
 })
@@ -1360,7 +1359,7 @@ router.get('/:classid/feed', verifyUser, async (req, res) => {
   const records = req.query.records
   const page = req.query.page
   let classFeed = [];
-  const [classAssessment, classAssessmentErr] = await safeAwait(prisma.classAssessment.findMany({
+  const [classAssessment] = await safeAwait(prisma.classAssessment.findMany({
     where: {
       classId: parseInt(req.params.classid)
     },

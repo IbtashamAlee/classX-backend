@@ -284,6 +284,8 @@ model Option{
   value String
   isCorrect Boolean
   deletedAt DateTime? @db.Timestamptz(6)
+  questionResponseOption QuestionResponseOption[]
+
 }
 
 model QuestionResponse{
@@ -292,12 +294,23 @@ model QuestionResponse{
   questionId Int
   user User @relation(fields: [userId], references: [id])
   userId Int
+  answerStatment String
   userSession UserSession @relation(fields: [userSessionId], references: [id])
   userSessionId Int
   classAssessment ClassAssessment @relation(fields: [classAssessmentId], references: [id])
   classAssessmentId Int
   obtainedScore Int
   responseAttachment ResponseAttachment[]
+  questionResponseOption QuestionResponseOption[]
+}
+
+model QuestionResponseOption{
+  id Int @id @default(autoincrement())
+  questionResponse QuestionResponse @relation(fields: [responseId], references: [id])
+  responseId Int
+  option Option @relation(fields: [optionId], references: [id])
+  optionId Int
+
 }
 
 model QuestionAttachment{
