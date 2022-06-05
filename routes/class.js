@@ -732,7 +732,14 @@ router.post('/poll/:id/comment', verifyUser, async (req, res) => {
       userId: req.user.id,
       createdAt: new Date(),
       body: comment.trim()
+    },
+    include:{
+    user : {
+      select:{
+        name:true , id:true , imageUrl : true
+      }
     }
+  }
   }))
   if (pollCommentErr) return res.status(409).send("unable to post comment");
   return res.send({pollComment, message: "comment added successfully"})
@@ -1079,6 +1086,13 @@ router.post('/post/:id/comment', verifyUser, async (req, res) => {
       userId: req.user.id,
       createdAt: new Date(),
       body: comment.trim()
+    },
+    include:{
+      user:{
+        select:{
+          name: true, imageUrl : true, id: true
+        }
+      }
     }
   }))
   if (postCommentErr) return res.status(409).send("unable to post comment");
@@ -1281,6 +1295,13 @@ router.post('/assessment/:id/comment', verifyUser, async (req, res) => {
       userId: req.user.id,
       createdAt: new Date(),
       body: comment.trim()
+    },
+    include:{
+      user:{
+        select:{
+          id:true , name:true , imageUrl: true
+        }
+      }
     }
   }))
   if (classAssessmentCommentErr) return res.status(409).send("unable to post comment");
