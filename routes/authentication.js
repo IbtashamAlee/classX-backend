@@ -186,6 +186,9 @@ router.get("/sessions", verifyUser, async (req, res) => {
   let [sessions, sessionErr] = await safeAwait(prisma.userSession.findMany({
     where: {
       userId: req.user.id,
+      NOT:{
+        token : null
+      }
     },
   }))
   if (!sessions || sessionErr) return res.send("unable to fetch sessions");
