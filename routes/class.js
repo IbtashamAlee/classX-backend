@@ -733,13 +733,13 @@ router.post('/poll/:id/comment', verifyUser, async (req, res) => {
       createdAt: new Date(),
       body: comment.trim()
     },
-    include:{
-    user : {
-      select:{
-        name:true , id:true , imageUrl : true
+    include: {
+      user: {
+        select: {
+          name: true, id: true, imageUrl: true
+        }
       }
     }
-  }
   }))
   if (pollCommentErr) return res.status(409).send("unable to post comment");
   return res.send({pollComment, message: "comment added successfully"})
@@ -1087,10 +1087,10 @@ router.post('/post/:id/comment', verifyUser, async (req, res) => {
       createdAt: new Date(),
       body: comment.trim()
     },
-    include:{
-      user:{
-        select:{
-          name: true, imageUrl : true, id: true
+    include: {
+      user: {
+        select: {
+          name: true, imageUrl: true, id: true
         }
       }
     }
@@ -1186,7 +1186,6 @@ router.get('/assessment/:id', verifyUser, async (req, res) => {
               option: true
             }
           }
-
         },
       },
       assessmentComments: {
@@ -1213,12 +1212,12 @@ router.get('/assessment/:id', verifyUser, async (req, res) => {
   }));
   if (!classAssessment[0] || classAssessmentErr) return res.status(409).send("unable to fetch class assessments");
   const totalQuestions = classAssessment[0].assessment.question.length
-  const toDisplay = classAssessment[0].QuestionsToDisplay
+  const toDisplay = classAssessment[0].QuestionsToDisplay > totalQuestions ? totalQuestions : classAssessment[0].QuestionsToDisplay
   if (toDisplay < totalQuestions) {
     classAssessment[0].assessment.question =
       classAssessment[0].assessment.question
         .sort(() => Math.random() - 0.6)
-        .slice(0,toDisplay)
+        .slice(0, toDisplay)
   }
   const isPermitted = await checkPermission(req.user, '42_' + classAssessment[0].classId);
   if (!isPermitted) return res.status(403).send("unauthorized");
@@ -1296,10 +1295,10 @@ router.post('/assessment/:id/comment', verifyUser, async (req, res) => {
       createdAt: new Date(),
       body: comment.trim()
     },
-    include:{
-      user:{
-        select:{
-          id:true , name:true , imageUrl: true
+    include: {
+      user: {
+        select: {
+          id: true, name: true, imageUrl: true
         }
       }
     }
@@ -1336,38 +1335,52 @@ router.put('/assessment/comment/:id', verifyUser, async (req, res) => {
 //Attempt assessments
 //add question response in assessment
 //calculate question score on run -
-router.post('/:classId/assessment/:id/question/:questionId/response', async (req, res) => {
-  const [classAssessment, classAssessmentErr] = await safeAwait(prisma.classAssessment.findMany({
-    where: {
-      id: parseInt(req.params.id),
-      deletedAt: null
-    },
-    include: {
-      assessment: {
-        include: {
-          question: {
-            where: {
-              id: parseInt(req.params.questionId)
-            },
-            include : {
-              option : {
-                where:{
-                  isCorrect : true
-                }
-              }
-            }
+router.post('/:classId/assessment/:id/question/:questionId/response', verifyUser,async (req, res) => {
+  const response = await prisma.questionResponse.create({
+    data:{
+      questionId : parseInt(req.params.questionId),
+      userId : req.user.id,
+      answerStatment : req.body.answer ?? '',
+      userSessionId : req.session,
+      classAssessmentId : parseInt(req.params.id),
+    }
+  })
+  if(req.body.options){
+    if(req.body.options.length > 0){
+      for await(option of req.body.options){
+        await prisma.questionResponseOption.create({
+          data : {
+            responseId : response.id,
+            optionId : option.id
           }
-        }
+        })
       }
     }
-  }))
-  if (!classAssessment || classAssessment.length < 1 || classAssessmentErr) return res.status(404).send("not found");
-  const questionOptions = (classAssessment[0]?.assessment?.question[0]?.option)
-
-  return res.send(classAssessment)
-  for await(const option of req.body.option){
-
+    //here calculate the scor and update .
   }
+  if(req.body.files){
+    if(req.body.files.length > 0){
+      for await (file of req.body.files){
+        await prisma.responseAttachment.create({
+          data : {
+            questionResponseId : response.id,
+            fileId : file.id
+          }
+        })
+      }
+    }
+  }
+
+  return res.send(await prisma.questionResponse.findUnique({
+    where:{
+       id : response.id
+    },
+    include:{
+      questionResponseOption : true,
+      responseAttachment : true
+    }
+  }))
+
 })
 
 
