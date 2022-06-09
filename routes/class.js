@@ -1336,7 +1336,7 @@ router.put('/assessment/comment/:id', verifyUser, async (req, res) => {
 //add question response in assessment
 //calculate question score on run -
 router.post('/:classId/assessment/:id/question/:questionId/response', verifyUser,async (req, res) => {
-  const response = await prisma.questionResponse.create({
+  const [response,resErr] = await safeAwait(prisma.questionResponse.create({
     data:{
       questionId : parseInt(req.params.questionId),
       userId : req.user.id,
@@ -1344,29 +1344,65 @@ router.post('/:classId/assessment/:id/question/:questionId/response', verifyUser
       userSessionId : req.session,
       classAssessmentId : parseInt(req.params.id),
     }
-  })
+  }))
+  if(resErr) return res.status(409).send("unable to add response");
+
   if(req.body.options){
     if(req.body.options.length > 0){
       for await(option of req.body.options){
-        await prisma.questionResponseOption.create({
+        const [_] = await safeAwait(prisma.questionResponseOption.create({
           data : {
             responseId : response.id,
             optionId : option.id
           }
-        })
+        }))
       }
     }
-    //here calculate the scor and update .
+    //calculation marks here.
+    const [question]  = await safeAwait(prisma.question.findUnique({
+      where:{
+        id : parseInt(req.params.questionId)
+      },
+      include : {
+        option : {
+          where:{
+            isCorrect : true
+          },
+          select:{
+            id : true
+          }
+        }
+      }
+    }))
+    if(!question) return res.status(409).send("response saved sucessfully.unable to check answer ")
+    const scorePerOption = question.questionScore / question.option.length
+    let obtainedScore  = 0
+    req.body.options.map(opt => {
+      if(question.option.find(o => o.id === opt.id)){
+          obtainedScore += scorePerOption
+      }
+    })
+    if(obtainedScore > 0 ){
+     const [_] = await safeAwait(prisma.questionResponse.update({
+        where:{
+          id : response.id
+        },
+        data:{
+          obtainedScore : obtainedScore
+        }
+      }))
+    }
   }
+
   if(req.body.files){
     if(req.body.files.length > 0){
       for await (file of req.body.files){
-        await prisma.responseAttachment.create({
+        const [_] = await safeAwait(prisma.responseAttachment.create({
           data : {
             questionResponseId : response.id,
             fileId : file.id
           }
-        })
+        }))
       }
     }
   }
