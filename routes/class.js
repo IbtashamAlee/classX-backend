@@ -19,6 +19,17 @@ router.get('/', verifyUser, verifySystemAdmin, async (req, res) => {
   return res.send(classes);
 })
 
+//Get specific class
+router.get('/:id', verifyUser, verifySystemAdmin, async (req, res) => {
+  const [classes, classesErr] = await safeAwait(prisma.class.findUnique({
+    where : {
+      id : parseInt(req.params.id)
+    }
+  }));
+  if (classesErr) return res.status(409).send("unable to fetch classes");
+  return res.send(classes);
+})
+
 //To add an independent class
 router.post('/add-class', verifyUser, async (req, res) => {
   if (!req.body.name) return res.status(409).send('class name not provided')
@@ -490,6 +501,42 @@ router.put("/:id/profile-pic", verifyUser, async (req, res) => {
   return res.send("unable to update class image");
 })
 
+//get user role in class
+router.get("/:id/role", verifyUser , async (req, res)=>{
+  const [existingcClass,classErr] = await safeAwait(prisma.class.findUnique({
+    where:{
+      id: parseInt(req.params.id)
+    }
+  }));
+  if(classErr) return res.status(409).send("unable to fetch class");
+  const department = existingcClass.departmentId;
+  console.log(department)
+  const [role,roleErr] = await safeAwait(prisma.userRole.findMany({
+    where:{
+      userId : req.user.id
+    },
+    include:{
+      role :{
+        select :{
+          name: true,
+          classId : true,
+          departmentId : true
+        }
+      }
+    }
+  }))
+  if(roleErr) return res.status(409).send("unable to fetch role");
+  let classRole = [...role].filter(r => {
+    return (r.role.classId === parseInt(req.params.id) )
+  });
+  if(classRole.length < 1){
+    if(department){
+      classRole = role.filter(r => {
+        return (r.role.departmentId === department)})
+    }
+  }
+  return res.send(classRole[0]?.role?.name?.split('_')[0])
+})
 /*
 * POLLS
 * */
@@ -1141,6 +1188,12 @@ router.get('/:classid/assessment', verifyUser, async (req, res) => {
       deletedAt: null
     },
     include: {
+      assessment : {
+        select:{
+          name : true,
+          body : true,
+        }
+      },
       assessmentComments: {
         where: {
           deletedAt: null
@@ -1182,6 +1235,9 @@ router.get('/assessment/:id', verifyUser, async (req, res) => {
       assessment: {
         include: {
           question: {
+            where:{
+              deletedAt : null
+            },
             include: {
               option: true
             }
@@ -1376,6 +1432,7 @@ router.post('/:classId/assessment/:id/question/:questionId/response', verifyUser
     }))
     if(!question) return res.status(409).send("response saved sucessfully.unable to check answer ")
     const scorePerOption = question.questionScore / question.option.length
+    console.log(scorePerOption)
     let obtainedScore  = 0
     req.body.options.map(opt => {
       if(question.option.find(o => o.id === opt.id)){

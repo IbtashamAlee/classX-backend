@@ -299,7 +299,7 @@ model QuestionResponse{
   userSessionId Int
   classAssessment ClassAssessment @relation(fields: [classAssessmentId], references: [id])
   classAssessmentId Int
-  obtainedScore Int?
+  obtainedScore Float?
   responseAttachment ResponseAttachment[]
   questionResponseOption QuestionResponseOption[]
 }
