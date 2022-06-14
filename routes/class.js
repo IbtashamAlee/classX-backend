@@ -21,13 +21,42 @@ router.get('/', verifyUser, verifySystemAdmin, async (req, res) => {
 
 //Get specific class
 router.get('/:id', verifyUser, verifySystemAdmin, async (req, res) => {
-  const [classes, classesErr] = await safeAwait(prisma.class.findUnique({
+  const [existingClass, classErr] = await safeAwait(prisma.class.findUnique({
     where : {
       id : parseInt(req.params.id)
     }
   }));
-  if (classesErr) return res.status(409).send("unable to fetch classes");
-  return res.send(classes);
+  //if (classesErr) return res.status(409).send("unable to fetch classes");
+
+  if(classErr) return res.status(409).send("unable to fetch class");
+  const department = existingClass.departmentId;
+  const [role,roleErr] = await safeAwait(prisma.userRole.findMany({
+    where:{
+      userId : req.user.id
+    },
+    include:{
+      role :{
+        select :{
+          name: true,
+          classId : true,
+          departmentId : true
+        }
+      }
+    }
+  }))
+  if(roleErr) return res.status(409).send("unable to fetch role");
+  let classRole = [...role].filter(r => {
+    return (r.role.classId === parseInt(req.params.id) )
+  });
+  if(classRole.length < 1){
+    if(department){
+      classRole = role.filter(r => {
+        return (r.role.departmentId === department)})
+    }
+  }
+  let a = existingClass;
+  a['role'] = classRole[0]?.role?.name?.split('_')[0]
+  return res.send(existingClass);
 })
 
 //To add an independent class
