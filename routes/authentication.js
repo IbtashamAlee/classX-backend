@@ -22,7 +22,7 @@ router.post(`/signup`, signupValidation, async (req, res) => {
   const [user] = await safeAwait(
     prisma.user.findUnique({
       where: {
-        email: req.body.email
+        email: req.body.email.toLowerCase()
       }
     }))
   if (user) return res.status(409).send("user already exists");
@@ -30,7 +30,7 @@ router.post(`/signup`, signupValidation, async (req, res) => {
   const [newUser, newUserErr] = await safeAwait(prisma.user.create({
     data: {
       name: req.body.name,
-      email: req.body.email,
+      email: req.body.email.toLowerCase(),
       password: pass,
       createdAt: new Date(),
       emailToken: emailVerificationToken,
@@ -77,7 +77,7 @@ router.get("/mail-verify/:token", async (req, res) => {
 router.post(`/signin`, loginValidation, async (req, res) => {
   const [user, userErr] = await safeAwait(prisma.user.findUnique({
     where: {
-      email: req.body.email,
+      email: req.body.email.toLowerCase(),
     },
   }))
   if (!user) return res.status(404).send("User not found");
@@ -112,7 +112,7 @@ router.post(`/signin`, loginValidation, async (req, res) => {
 // manually resend verification to registered user
 router.post("/send-mail-verification", async (req, res) => {
   if (!req.body.email) return res.status(404).send("email not provided");
-  const mail = req.body.email;
+  const mail = req.body.email.toLowerCase();
   const [user, userErr] = await safeAwait(prisma.user.findUnique({
     where: {
       email: mail,
@@ -200,7 +200,7 @@ router.post('/password-reset', async (req, res) => {
   if (!req.body.email) return res.status(403).send("Email not provided");
   const [user, userErr] = await safeAwait(prisma.user.findUnique({
     where: {
-      email: req.body.email
+      email: req.body.email.toLowerCase()
     }
   }));
   if (!user || userErr) return res.status(404).send("User not found");
