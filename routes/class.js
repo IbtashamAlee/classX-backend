@@ -20,7 +20,7 @@ router.get('/', verifyUser, verifySystemAdmin, async (req, res) => {
 })
 
 //Get specific class
-router.get('/:id', verifyUser, verifySystemAdmin, async (req, res) => {
+router.get('/:id', verifyUser, async (req, res) => {
   const [existingClass, classErr] = await safeAwait(prisma.class.findUnique({
     where : {
       id : parseInt(req.params.id)
