@@ -290,7 +290,7 @@ router.post('/:id/question', async (req, res) => {
           })
         }
       }
-      if (question.options.length > 0) {
+      if (question?.options?.length > 0) {
         for await(option of question.options) {
           await prisma.option.create({
             data: {

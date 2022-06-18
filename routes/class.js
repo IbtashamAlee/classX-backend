@@ -1264,14 +1264,26 @@ router.get('/assessment/:id', verifyUser, async (req, res) => {
       assessment: {
         include: {
           question: {
-            where:{
-              deletedAt : null
+            where: {
+              deletedAt: null
             },
             include: {
-              option: true
+              questionAttachment: {
+                where: {
+                  deletedAt: null
+                },
+                include: {
+                  file: true
+                }
+              },
+              option: {
+                where: {
+                  deletedAt: null
+                }
+              }
             }
           }
-        },
+        }
       },
       assessmentComments: {
         where: {
@@ -1297,7 +1309,10 @@ router.get('/assessment/:id', verifyUser, async (req, res) => {
   }));
   if (!classAssessment[0] || classAssessmentErr) return res.status(409).send("unable to fetch class assessments");
   const totalQuestions = classAssessment[0].assessment.question.length
-  const toDisplay = classAssessment[0].QuestionsToDisplay > totalQuestions ? totalQuestions : classAssessment[0].QuestionsToDisplay
+  let toDisplay = classAssessment[0].QuestionsToDisplay > totalQuestions ? totalQuestions : classAssessment[0].QuestionsToDisplay
+  if(toDisplay === null){
+    toDisplay = totalQuestions
+  }
   if (toDisplay < totalQuestions) {
     classAssessment[0].assessment.question =
       classAssessment[0].assessment.question

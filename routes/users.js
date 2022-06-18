@@ -46,6 +46,7 @@ router.get("/", verifyUser, verifySystemAdmin, async (req, res) => {
 
 //get current user
 router.get("/me", verifyUser, async (req, res) => {
+  console.log(req.user);
   const {id, name, email, userStatus, imageUrl} = req.user;
   return res.status(200).json({id, name, email, userStatus, imageUrl});
 });
