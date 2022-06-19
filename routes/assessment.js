@@ -238,7 +238,7 @@ router.get("/:id", verifyUser, async (req, res) => {
     }
   }))
   if (assessmentsErr) return res.status(409).send("unable to fetch assessments");
-  return res.send(assessments);
+  return res.send(assessments[0]);
 });
 
 //create new assessment
