@@ -356,7 +356,8 @@ model ClassAssessmentSubmission{
   classAssessmentId Int
   user User @relation(fields : [userId] , references :[id])
   userId Int
-  obtainedMarks Float
+  totalMarks Float @default(0)
+  obtainedMarks Float @default(0)
   @@unique([classAssessmentId, userId])
 }
 
