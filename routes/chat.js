@@ -104,6 +104,7 @@ router.post('/:id/message', verifyUser, async (req, res) => {
       removedAt: null
     }
   }))
+  console.log(chatParticipant)
   console.log(chatParticipantErr)
   if (chatParticipantErr || chatParticipant?.length < 1) return res.status(403).send("unauthorized");
   const [message, messageErr] = await safeAwait(prisma.chatMessage.create({
@@ -115,6 +116,14 @@ router.post('/:id/message', verifyUser, async (req, res) => {
       fileId: req.body.file?.id ?? null
     }
   }))
+  await prisma.chatParticipants.update({
+    where:{
+      id : chatParticipant[0].id
+    },
+    data : {
+      unreadMessages: {increment:1}
+    }
+  })
   return res.send(message)
 })
 
@@ -181,7 +190,8 @@ router.get('/conversations', verifyUser, async (req, res) => {
       where:{
         participantId : req.user.id
       },
-      include:{
+      select:{
+        unreadMessages  : true,
         chat:{
           include:{
             chatParticipants: {
@@ -206,7 +216,7 @@ router.get('/conversations', verifyUser, async (req, res) => {
       }
     })
   )
-  console.log(chat)
+  console.log(chatErr)
   if (!chat || chatErr) return res.status(409).send("unable to fetch chat");
   chat  = chat.map(p=>{
       return {chatId:p.chat.id,userName:p.chat.chatParticipants.filter(ptc => ptc.participantId !== req.user.id)[0],
@@ -261,7 +271,25 @@ router.get('/:id', verifyUser, async (req, res) => {
       }
     }
   }))
-  console.log(chatErr)
+  const [isOtherParticipant, otherparticipantErr] = await safeAwait(prisma.chatParticipants.findMany({
+      where: {
+        chatId: parseInt(req.params.id),
+        participantId: {
+          not: req.user.id
+        },
+        removedAt: null
+      }
+    }
+  ))
+  console.log(isOtherParticipant.id)
+  await prisma.chatParticipants.update({
+    where:{
+      id: isOtherParticipant[0].id
+    },
+    data:{
+      unreadMessages : 0
+    }
+  })
   if (!chat || chatErr) return res.status(409).send("unable to fetch chat");
   return res.send(chat);
 })

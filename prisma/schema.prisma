@@ -50,6 +50,7 @@ model User {
   chat Chat[]
   class Class[]
   classAssessment ClassAssessment[]
+  classAssessmentSubmission ClassAssessmentSubmission[]
   }
 
 model UserSession{
@@ -338,15 +339,25 @@ model ClassAssessment{
   assessment Assessment @relation(fields: [assessmentId], references: [id])
   assessmentId Int
   deletedAt DateTime? @db.Timestamptz(6)
-  allowResubmission Boolean
   startingTime DateTime @db.Timestamptz(6)
   endingTime DateTime @db.Timestamptz(6)
-  isMultiTimer Boolean
   QuestionsToDisplay Int?
   user User? @relation(fields: [createdBy], references : [id])
   createdBy Int?
   questionResponse QuestionResponse[]
   assessmentComments ClassAssessmentComments[]
+  classAssessmentSubmission ClassAssessmentSubmission[]
+
+}
+
+model ClassAssessmentSubmission{
+  id Int @id @default(autoincrement())
+  classAssessment ClassAssessment @relation(fields: [classAssessmentId] , references:[id])
+  classAssessmentId Int
+  user User @relation(fields : [userId] , references :[id])
+  userId Int
+  obtainedMarks Float
+  @@unique([classAssessmentId, userId])
 }
 
 model ClassAssessmentComments{
@@ -403,6 +414,7 @@ model ChatParticipants{
   user User @relation(fields: [participantId], references: [id])
   participantId Int
   removedAt DateTime? @db.Timestamptz(6)
+  unreadMessages Int @default(0)
   @@unique ([chatId, participantId])
 }
 
