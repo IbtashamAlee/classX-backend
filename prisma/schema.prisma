@@ -358,6 +358,7 @@ model ClassAssessmentSubmission{
   userId Int
   totalMarks Float @default(0)
   obtainedMarks Float @default(0)
+  submittedAt DateTime? @db.Timestamptz(6) @default(now())
   @@unique([classAssessmentId, userId])
 }
 
