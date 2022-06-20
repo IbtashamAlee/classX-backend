@@ -22,36 +22,37 @@ router.get('/', verifyUser, verifySystemAdmin, async (req, res) => {
 //Get specific class
 router.get('/:id', verifyUser, async (req, res) => {
   const [existingClass, classErr] = await safeAwait(prisma.class.findUnique({
-    where : {
-      id : parseInt(req.params.id)
+    where: {
+      id: parseInt(req.params.id)
     }
   }));
   //if (classesErr) return res.status(409).send("unable to fetch classes");
 
-  if(classErr) return res.status(409).send("unable to fetch class");
+  if (classErr) return res.status(409).send("unable to fetch class");
   const department = existingClass.departmentId;
-  const [role,roleErr] = await safeAwait(prisma.userRole.findMany({
-    where:{
-      userId : req.user.id
+  const [role, roleErr] = await safeAwait(prisma.userRole.findMany({
+    where: {
+      userId: req.user.id
     },
-    include:{
-      role :{
-        select :{
+    include: {
+      role: {
+        select: {
           name: true,
-          classId : true,
-          departmentId : true
+          classId: true,
+          departmentId: true
         }
       }
     }
   }))
-  if(roleErr) return res.status(409).send("unable to fetch role");
+  if (roleErr) return res.status(409).send("unable to fetch role");
   let classRole = [...role].filter(r => {
-    return (r.role.classId === parseInt(req.params.id) )
+    return (r.role.classId === parseInt(req.params.id))
   });
-  if(classRole.length < 1){
-    if(department){
+  if (classRole.length < 1) {
+    if (department) {
       classRole = role.filter(r => {
-        return (r.role.departmentId === department)})
+        return (r.role.departmentId === department)
+      })
     }
   }
   let a = existingClass;
@@ -531,37 +532,38 @@ router.put("/:id/profile-pic", verifyUser, async (req, res) => {
 })
 
 //get user role in class
-router.get("/:id/role", verifyUser , async (req, res)=>{
-  const [existingcClass,classErr] = await safeAwait(prisma.class.findUnique({
-    where:{
+router.get("/:id/role", verifyUser, async (req, res) => {
+  const [existingcClass, classErr] = await safeAwait(prisma.class.findUnique({
+    where: {
       id: parseInt(req.params.id)
     }
   }));
-  if(classErr) return res.status(409).send("unable to fetch class");
+  if (classErr) return res.status(409).send("unable to fetch class");
   const department = existingcClass.departmentId;
   console.log(department)
-  const [role,roleErr] = await safeAwait(prisma.userRole.findMany({
-    where:{
-      userId : req.user.id
+  const [role, roleErr] = await safeAwait(prisma.userRole.findMany({
+    where: {
+      userId: req.user.id
     },
-    include:{
-      role :{
-        select :{
+    include: {
+      role: {
+        select: {
           name: true,
-          classId : true,
-          departmentId : true
+          classId: true,
+          departmentId: true
         }
       }
     }
   }))
-  if(roleErr) return res.status(409).send("unable to fetch role");
+  if (roleErr) return res.status(409).send("unable to fetch role");
   let classRole = [...role].filter(r => {
-    return (r.role.classId === parseInt(req.params.id) )
+    return (r.role.classId === parseInt(req.params.id))
   });
-  if(classRole.length < 1){
-    if(department){
+  if (classRole.length < 1) {
+    if (department) {
       classRole = role.filter(r => {
-        return (r.role.departmentId === department)})
+        return (r.role.departmentId === department)
+      })
     }
   }
   return res.send(classRole[0]?.role?.name?.split('_')[0])
@@ -1217,10 +1219,10 @@ router.get('/:classid/assessment', verifyUser, async (req, res) => {
       deletedAt: null
     },
     include: {
-      assessment : {
-        select:{
-          name : true,
-          body : true,
+      assessment: {
+        select: {
+          name: true,
+          body: true,
         }
       },
       assessmentComments: {
@@ -1310,7 +1312,7 @@ router.get('/assessment/:id', verifyUser, async (req, res) => {
   if (!classAssessment[0] || classAssessmentErr) return res.status(409).send("unable to fetch class assessments");
   const totalQuestions = classAssessment[0].assessment.question.length
   let toDisplay = classAssessment[0].QuestionsToDisplay > totalQuestions ? totalQuestions : classAssessment[0].QuestionsToDisplay
-  if(toDisplay === null){
+  if (toDisplay === null) {
     toDisplay = totalQuestions
   }
   if (toDisplay < totalQuestions) {
@@ -1340,14 +1342,13 @@ router.post('/:classid/assessment/:id', verifyUser, async (req, res) => {
     data: {
       classId: parseInt(req.params.classid),
       assessmentId: assessment.id,
-      allowResubmission: req.body.allowResubmission ?? false,
       startingTime: req.body.startingTime ?? new Date(),
       endingTime: req.body.endingTime ?? new Date(new Date().getTime() + 60 * 60 * 24 * 1000),
-      isMultiTimer: req.body.isMultiTimer ?? false,
       QuestionsToDisplay: req.body.questionsToDisplay ?? null,
       createdBy: req.user.id
     }
   }))
+  console.log(classAssessmentErr)
   if (classAssessmentErr) return res.status(409).send("unable to add assessment to class");
   return res.send(classAssessment);
 })
@@ -1435,73 +1436,73 @@ router.put('/assessment/comment/:id', verifyUser, async (req, res) => {
 //Attempt assessments
 //add question response in assessment
 //calculate question score on run -
-router.post('/:classId/assessment/:id/question/:questionId/response', verifyUser,async (req, res) => {
-  const [response,resErr] = await safeAwait(prisma.questionResponse.create({
-    data:{
-      questionId : parseInt(req.params.questionId),
-      userId : req.user.id,
-      answerStatment : req.body.answer ?? '',
-      userSessionId : req.session,
-      classAssessmentId : parseInt(req.params.id),
+router.post('/:classId/assessment/:id/question/:questionId/response', verifyUser, async (req, res) => {
+  const [response, resErr] = await safeAwait(prisma.questionResponse.create({
+    data: {
+      questionId: parseInt(req.params.questionId),
+      userId: req.user.id,
+      answerStatment: req.body.answer ?? '',
+      userSessionId: req.session,
+      classAssessmentId: parseInt(req.params.id),
     }
   }))
-  if(resErr) return res.status(409).send("unable to add response");
+  if (resErr) return res.status(409).send("unable to add response");
 
-  if(req.body.options){
-    if(req.body.options.length > 0){
-      for await(option of req.body.options){
+  if (req.body.options) {
+    if (req.body.options.length > 0) {
+      for await(option of req.body.options) {
         const [_] = await safeAwait(prisma.questionResponseOption.create({
-          data : {
-            responseId : response.id,
-            optionId : option.id
+          data: {
+            responseId: response.id,
+            optionId: option.id
           }
         }))
       }
     }
     //calculation marks here.
-    const [question]  = await safeAwait(prisma.question.findUnique({
-      where:{
-        id : parseInt(req.params.questionId)
+    const [question] = await safeAwait(prisma.question.findUnique({
+      where: {
+        id: parseInt(req.params.questionId)
       },
-      include : {
-        option : {
-          where:{
-            isCorrect : true
+      include: {
+        option: {
+          where: {
+            isCorrect: true
           },
-          select:{
-            id : true
+          select: {
+            id: true
           }
         }
       }
     }))
-    if(!question) return res.status(409).send("response saved sucessfully.unable to check answer ")
+    if (!question) return res.status(409).send("response saved sucessfully.unable to check answer ")
     const scorePerOption = question.questionScore / question.option.length
     console.log(scorePerOption)
-    let obtainedScore  = 0
+    let obtainedScore = 0
     req.body.options.map(opt => {
-      if(question.option.find(o => o.id === opt.id)){
-          obtainedScore += scorePerOption
+      if (question.option.find(o => o.id === opt.id)) {
+        obtainedScore += scorePerOption
       }
     })
-    if(obtainedScore > 0 ){
-     const [_] = await safeAwait(prisma.questionResponse.update({
-        where:{
-          id : response.id
+    if (obtainedScore > 0) {
+      const [_] = await safeAwait(prisma.questionResponse.update({
+        where: {
+          id: response.id
         },
-        data:{
-          obtainedScore : obtainedScore
+        data: {
+          obtainedScore: obtainedScore
         }
       }))
     }
   }
 
-  if(req.body.files){
-    if(req.body.files.length > 0){
-      for await (file of req.body.files){
+  if (req.body.files) {
+    if (req.body.files.length > 0) {
+      for await (file of req.body.files) {
         const [_] = await safeAwait(prisma.responseAttachment.create({
-          data : {
-            questionResponseId : response.id,
-            fileId : file.id
+          data: {
+            questionResponseId: response.id,
+            fileId: file.id
           }
         }))
       }
@@ -1509,17 +1510,191 @@ router.post('/:classId/assessment/:id/question/:questionId/response', verifyUser
   }
 
   return res.send(await prisma.questionResponse.findUnique({
-    where:{
-       id : response.id
+    where: {
+      id: response.id
     },
-    include:{
-      questionResponseOption : true,
-      responseAttachment : true
+    include: {
+      questionResponseOption: true,
+      responseAttachment: true
+    }
+  }))
+})
+
+//mark assessment as done
+router.post("/assessment/:assessmentId/done", verifyUser, async (req, res) => {
+  const [checkDone, checkDoneErr] = await safeAwait(prisma.classAssessmentSubmission.upsert({
+    where: {
+      classAssessmentId_userId: {
+        classAssessmentId: parseInt(req.params.assessmentId),
+        userId: req.user.id,
+      }
+    },
+    create: {
+      classAssessmentId: parseInt(req.params.assessmentId),
+      userId: req.user.id,
+    },
+    update: {}
+  }))
+  console.log(checkDoneErr)
+  if (checkDoneErr) return res.status(409).send("unable to mark as done");
+  console.log("assessment is marked done....calculating marks");
+  const [responses, responsesErr] = await safeAwait(prisma.questionResponse.findMany({
+    where: {
+      classAssessmentId: parseInt(req.params.assessmentId)
+    },
+    include: {
+      question: {
+        select: {
+          questionScore: true
+        }
+      }
+    }
+  }))
+  if (responsesErr) return res.status(409).send("unable to fetch assessment responses");
+  let totalMarks = 0;
+  let obtainedMarks = 0;
+  if (responses.length > 0) {
+    responses.map(r => {
+      totalMarks += r.question.questionScore;
+      obtainedMarks += r.obtainedScore ?? 0;
+    })
+  }
+  const [updatedResponse, updatedResponseErr] = await safeAwait(prisma.classAssessmentSubmission.update({
+    where: {
+      id: checkDone.id
+    },
+    data: {
+      obtainedMarks: obtainedMarks,
+      totalMarks: totalMarks
+    }
+  }))
+  console.log(updatedResponseErr)
+  if (updatedResponseErr) return res.status(409).send("unable to update user scores");
+  return res.send(updatedResponse)
+})
+
+// check all submissions and their statuses ( teachers) for an assessment
+router.get("/assessment/:id/view-details", verifyUser, async (req, res) => {
+  const [assessment, assessmentErr] = await safeAwait(prisma.ClassAssessment.findUnique({
+    where: {
+      id: parseInt(req.params.id)
+    },
+    include: {
+      classAssessmentSubmission: {
+        include: {
+          user: {
+            select: {
+              id: true, name: true, imageUrl: true
+            }
+          },
+          classAssessment: {
+            include: {
+              questionResponse: {
+                include: {
+                  questionResponseOption: true,
+                  responseAttachment: true,
+                  question: {
+                    include: {
+                      option: true,
+                      questionAttachment: true
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }))
+  return res.send(assessment)
+})
+
+// Submit a question response and calculate marks.
+router.post('/:classId/assessment/:id/question/:questionId/response', verifyUser, async (req, res) => {
+  const [response, resErr] = await safeAwait(prisma.questionResponse.create({
+    data: {
+      questionId: parseInt(req.params.questionId),
+      userId: req.user.id,
+      answerStatment: req.body.answer ?? '',
+      userSessionId: req.session,
+      classAssessmentId: parseInt(req.params.id),
+    }
+  }))
+  if (resErr) return res.status(409).send("unable to add response");
+
+  if (req.body.options) {
+    if (req.body.options.length > 0) {
+      for await(option of req.body.options) {
+        const [_] = await safeAwait(prisma.questionResponseOption.create({
+          data: {
+            responseId: response.id,
+            optionId: option.id
+          }
+        }))
+      }
+    }
+    //calculation marks here.
+    const [question] = await safeAwait(prisma.question.findUnique({
+      where: {
+        id: parseInt(req.params.questionId)
+      },
+      include: {
+        option: {
+          where: {
+            isCorrect: true
+          },
+          select: {
+            id: true
+          }
+        }
+      }
+    }))
+    if (!question) return res.status(409).send("response saved sucessfully.unable to check answer ")
+    const scorePerOption = question.questionScore / question.option.length
+    console.log(scorePerOption)
+    let obtainedScore = 0
+    req.body.options.map(opt => {
+      if (question.option.find(o => o.id === opt.id)) {
+        obtainedScore += scorePerOption
+      }
+    })
+    if (obtainedScore > 0) {
+      const [_] = await safeAwait(prisma.questionResponse.update({
+        where: {
+          id: response.id
+        },
+        data: {
+          obtainedScore: obtainedScore
+        }
+      }))
+    }
+  }
+
+  if (req.body.files) {
+    if (req.body.files.length > 0) {
+      for await (file of req.body.files) {
+        const [_] = await safeAwait(prisma.responseAttachment.create({
+          data: {
+            questionResponseId: response.id,
+            fileId: file.id
+          }
+        }))
+      }
+    }
+  }
+
+  return res.send(await prisma.questionResponse.findUnique({
+    where: {
+      id: response.id
+    },
+    include: {
+      questionResponseOption: true,
+      responseAttachment: true
     }
   }))
 
 })
-
 
 /*
 * Class Feed
