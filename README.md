@@ -1,6 +1,7 @@
 # ClassX - An Absolute Class Management Solution
+[&#8599; FRONTEND-REPO](https://github.com/ibtashamalee/classx-client)
 
-
+[&#8599; BACKEND-REPO](https://github.com/ibtashamalee/classx-backend)
 #### Objectives
 We intend to design a seamless e-learning platform for all kinds of academic institutes. The system aids in class management and provides all features for this purpose. This system eases the process of e-learning. The users will be able to manage all class-related tasks without any hassle. 
 

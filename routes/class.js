@@ -997,8 +997,8 @@ router.post('/:class/attendance/:id', verifyUser, async (req, res) => {
 
 //add post in class
 router.post('/:class/post', verifyUser, async (req, res) => {
-  const isPermitted = await checkPermission(req.user, '19_' + req.params.class);
-  if (!isPermitted) return res.status(403).send("not authorized")
+  // const isPermitted = await checkPermission(req.user, '19_' + req.params.class);
+  // if (!isPermitted) return res.status(403).send("not authorized")
   if (!req.body.content) return res.status(409).send("Post Content not provided");
   // return res.send(files)
   const [post, postErr] = await safeAwait(prisma.classPost.create({
