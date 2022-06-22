@@ -1487,10 +1487,9 @@ router.post('/:classId/assessment/:id/question/:questionId/response', verifyUser
     }))
     if (!question) return res.status(409).send("response saved sucessfully.unable to check answer ")
     const scorePerOption = question.questionScore / question.option.length
-    console.log(scorePerOption)
     let obtainedScore = 0
     req.body.options.map(opt => {
-      if (question.option.find(o => o.id === opt.id)) {
+      if (question.option.find(o => o.id == opt.id)) {
         obtainedScore += scorePerOption
       }
     })
