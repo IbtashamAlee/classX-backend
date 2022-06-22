@@ -1244,6 +1244,11 @@ router.get('/:classid/assessment', verifyUser, async (req, res) => {
         select: {
           imageUrl: true, name: true
         }
+      },
+      classAssessmentSubmission: {
+        where :{
+          userId : req.user.id
+        }
       }
     },
     ...(page && records && {
@@ -1287,6 +1292,11 @@ router.get('/assessment/:id', verifyUser, async (req, res) => {
           }
         }
       },
+    classAssessmentSubmission: {
+      where :{
+        userId : req.user.id
+      }
+    },
       assessmentComments: {
         where: {
           deletedAt: null
@@ -1723,6 +1733,11 @@ router.get('/:classid/feed', verifyUser, async (req, res) => {
             }
           },
           body: true
+        }
+      },
+      classAssessmentSubmission: {
+        where :{
+          userId : req.user.id
         }
       },
       assessment: {
