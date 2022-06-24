@@ -30,9 +30,10 @@ router.get("/public/:id", verifyUser, async (req, res) => {
     where: {
       id: parseInt(req.params.id)
     }, select: {
-      id: true, name: true, userStatus: true, imageURL: true, email: true
+      id: true, name: true, userStatus: true, imageUrl: true, email: true
     },
   }));
+  console.log(userErr)
   if (userErr) return res.status(409).send("unable to fetch user");
   return res.json(user);
 });

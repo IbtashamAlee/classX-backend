@@ -394,8 +394,8 @@ model AttendanceRecord{
   user User @relation(fields: [userId], references: [id])
   userId Int
   isPresent Boolean
-  userSession UserSession @relation(fields: [userSessionId], references: [id])
-  userSessionId Int
+  userSession UserSession? @relation(fields: [userSessionId], references: [id])
+  userSessionId Int?
   @@unique ([userId, classAttendanceId])
 }
 

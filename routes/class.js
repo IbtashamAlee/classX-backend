@@ -301,7 +301,6 @@ router.post('/:id/participants/remove', verifyUser, async (req, res) => {
         }
       }
     }));
-    console.log(existingParticipant)
     if (!existingParticipant) {
       not_participants.push(reqUser.email);
       continue;
@@ -399,7 +398,6 @@ router.post('/join/:code', verifyUser, async (req, res) => {
 //Get class participants
 router.get('/:id/participants', verifyUser, async (req, res) => {
   const isPermitted = await checkPermission(req.user, '43_' + req.params.id);
-  console.log(isPermitted)
   if (!isPermitted) return res.status(403).send("not authorized")
   const [existingClass, existingClassErr] = await safeAwait(prisma.class.findUnique({
     where: {
@@ -426,7 +424,6 @@ router.get('/:id/participants', verifyUser, async (req, res) => {
       }
     }
   }))
-  console.log(participantsErr)
   if (participantsErr) return res.send("unable to fetch participants");
   if (existingClass.departmentId) {
     const [departmentAdmin, departmentAdminErr] = await safeAwait(prisma.role.findMany({
@@ -526,7 +523,6 @@ router.put("/:id/profile-pic", verifyUser, async (req, res) => {
       imageUrl: req.body.imageUrl
     }
   }))
-  console.log(updatedClass)
   if (updatedClass) return res.send("class image updated successfully")
   return res.send("unable to update class image");
 })
@@ -540,7 +536,6 @@ router.get("/:id/role", verifyUser, async (req, res) => {
   }));
   if (classErr) return res.status(409).send("unable to fetch class");
   const department = existingcClass.departmentId;
-  console.log(department)
   const [role, roleErr] = await safeAwait(prisma.userRole.findMany({
     where: {
       userId: req.user.id
@@ -611,7 +606,6 @@ router.put('/poll/:id', verifyUser, async (req, res) => {
   const isPermitted = await checkPermission(req.user, '24_' + poll.classId);
   if (!isPermitted) return res.status(403).send("not authorized");
   if (poll.deletedAt !== null) return res.status(409).send("poll deleted already");
-  console.log(poll.deletedAt)
   const [updatedPoll, updatedPollErr] = await safeAwait(prisma.classPoll.update({
     where: {
       id: parseInt(req.params.id)
@@ -868,6 +862,37 @@ router.post('/:class/attendance', verifyUser, async (req, res) => {
     }
   }))
   if (attendanceErr) return res.status(409).send("Unable to add attendance");
+  let [participants, participantsErr] = await safeAwait(prisma.role.findMany({
+    where: {
+      classId: 12,
+    },
+    select: {
+      name: true,
+      userRole: {
+        select: {
+          user: {
+            select: {
+              id: true, email: true, name: true, userStatus: true, imageUrl: true
+            }
+          }
+        }
+      }
+    }
+  }))
+  if (participantsErr) return res.status(409).send("unable to fetch participants");
+  participants = participants.filter(p => {
+    return p.name.includes('Student')
+  })
+  const students = participants[0].userRole
+  for await(student of students) {
+    await safeAwait(prisma.attendanceRecord.create({
+      data: {
+        classAttendanceId: attendance.id,
+        userId: student.user.id,
+        isPresent: false
+      }
+    }))
+  }
   return res.send(attendance);
 })
 
@@ -978,8 +1003,14 @@ router.post('/:class/attendance/:id', verifyUser, async (req, res) => {
       }
     }
   }))
-  if (attendanceRecord) return res.status(409).send("attendance already marked");
-  const [newAttendanceRecord, newAttendanceRecordErr] = await safeAwait(prisma.attendanceRecord.create({
+  if (!attendanceRecord) return res.status(409).send("unable to match user's record");
+  const [newAttendanceRecord, newAttendanceRecordErr] = await safeAwait(prisma.attendanceRecord.update({
+    where: {
+      userId_classAttendanceId: {
+        userId: req.user.id,
+        classAttendanceId: parseInt(req.params.id)
+      }
+    },
     data: {
       classAttendanceId: parseInt(req.params.id),
       userId: req.user.id,
@@ -1246,8 +1277,8 @@ router.get('/:classid/assessment', verifyUser, async (req, res) => {
         }
       },
       classAssessmentSubmission: {
-        where :{
-          userId : req.user.id
+        where: {
+          userId: req.user.id
         }
       }
     },
@@ -1292,11 +1323,11 @@ router.get('/assessment/:id', verifyUser, async (req, res) => {
           }
         }
       },
-    classAssessmentSubmission: {
-      where :{
-        userId : req.user.id
-      }
-    },
+      classAssessmentSubmission: {
+        where: {
+          userId: req.user.id
+        }
+      },
       assessmentComments: {
         where: {
           deletedAt: null
@@ -1358,7 +1389,6 @@ router.post('/:classid/assessment/:id', verifyUser, async (req, res) => {
       createdBy: req.user.id
     }
   }))
-  console.log(classAssessmentErr)
   if (classAssessmentErr) return res.status(409).send("unable to add assessment to class");
   return res.send(classAssessment);
 })
@@ -1487,14 +1517,15 @@ router.post('/:classId/assessment/:id/question/:questionId/response', verifyUser
     }))
     if (!question) return res.status(409).send("response saved sucessfully.unable to check answer ")
     const scorePerOption = question.questionScore / question.option.length
+
     let obtainedScore = 0
-    req.body.options.map(opt => {
+    req.body?.options?.map(opt => {
       if (question.option.find(o => o.id == opt.id)) {
         obtainedScore += scorePerOption
       }
     })
     if (obtainedScore > 0) {
-      const [_] = await safeAwait(prisma.questionResponse.update({
+      const [updatedRes, resErr] = await safeAwait(prisma.questionResponse.update({
         where: {
           id: response.id
         },
@@ -1503,6 +1534,7 @@ router.post('/:classId/assessment/:id/question/:questionId/response', verifyUser
         }
       }))
     }
+
   }
 
   if (req.body.files) {
@@ -1544,9 +1576,7 @@ router.post("/assessment/:assessmentId/done", verifyUser, async (req, res) => {
     },
     update: {}
   }))
-  console.log(checkDoneErr)
   if (checkDoneErr) return res.status(409).send("unable to mark as done");
-  console.log("assessment is marked done....calculating marks");
   const [responses, responsesErr] = await safeAwait(prisma.questionResponse.findMany({
     where: {
       classAssessmentId: parseInt(req.params.assessmentId)
@@ -1577,7 +1607,6 @@ router.post("/assessment/:assessmentId/done", verifyUser, async (req, res) => {
       totalMarks: totalMarks
     }
   }))
-  console.log(updatedResponseErr)
   if (updatedResponseErr) return res.status(409).send("unable to update user scores");
   return res.send(updatedResponse)
 })
@@ -1661,7 +1690,6 @@ router.post('/:classId/assessment/:id/question/:questionId/response', verifyUser
     }))
     if (!question) return res.status(409).send("response saved sucessfully.unable to check answer ")
     const scorePerOption = question.questionScore / question.option.length
-    console.log(scorePerOption)
     let obtainedScore = 0
     req.body.options.map(opt => {
       if (question.option.find(o => o.id === opt.id)) {
@@ -1735,8 +1763,8 @@ router.get('/:classid/feed', verifyUser, async (req, res) => {
         }
       },
       classAssessmentSubmission: {
-        where :{
-          userId : req.user.id
+        where: {
+          userId: req.user.id
         }
       },
       assessment: {
@@ -1819,7 +1847,6 @@ router.get('/:classid/feed', verifyUser, async (req, res) => {
       take: parseInt(records)
     })
   }))
-  console.log(Err)
   let isPresent = [];
   attendance.map(a => {
     a.attendanceRecord.map(record => {

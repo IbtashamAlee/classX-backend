@@ -13,7 +13,7 @@ const fileRouter = require('./routes/file');
 const classRouter = require('./routes/class');
 const assessmentRouter = require('./routes/assessment');
 const chatRouter = require('./routes/chat');
-
+const statsRouter = require('./routes/stats');
 const app = express();
 
 app.use(logger('dev'));
@@ -31,5 +31,6 @@ app.use('/file', fileRouter);
 app.use('/class', classRouter);
 app.use('/assessment', assessmentRouter);
 app.use('/chat', chatRouter);
+app.use('/stats', statsRouter);
 
 module.exports = app;
