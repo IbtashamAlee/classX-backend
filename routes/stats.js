@@ -205,7 +205,7 @@ router.get('/department/:dep_id/attendance-stats', verifyUser, async (req, res) 
       })
     }
   })
-  return res.send({total_attendances, total_presents})
+  return res.send({total:total_attendances,present:total_presents})
 })
 
 //Institute's aggregated attendance
@@ -249,7 +249,7 @@ router.get('/institute/:ins_id/attendance-stats', verifyUser, async (req, res) =
       })
     }
   })
-  return res.send({total_attendances, total_presents})
+  return res.send({total:total_attendances, present:total_presents})
 })
 
 
