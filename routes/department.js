@@ -90,7 +90,7 @@ router.post('/:id/add-class', verifyUser, async (req, res) => {
       description: req.body.description || '',
       departmentId: parseInt(req.params.id),
       createdBy: req.user.id,
-      code: await nanoid(),
+      code: await nanoid(6),
     }
   }));
 
