@@ -106,6 +106,7 @@ router.get('/class/:classid/student/:student/marks', verifyUser, async (req, res
       deletedAt: null
     },
     include: {
+      assessment: true,
       classAssessmentSubmission: {
         where:{
           userId : parseInt(req.params.student)
@@ -120,7 +121,7 @@ router.get('/class/:classid/student/:student/marks', verifyUser, async (req, res
   return res.send(assessment)
 })
 
-//student Marks details
+//student Marks stats
 router.get('/class/:classid/student/:student/marks-stats', verifyUser, async (req, res) => {
   let [assessment, assessmentErr] = await safeAwait(prisma.classAssessment.findMany({
     where: {

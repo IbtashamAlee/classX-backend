@@ -858,7 +858,7 @@ router.post('/:class/attendance', verifyUser, async (req, res) => {
       createdBy: req.user.id,
       createdAt: new Date(),
       startingTime: req.body.startingTime ?? new Date(),
-      endingTime: req.body.endingTime ?? new Date(new Date().getTime() + 60 * 60 * 24 * 1000)
+      endingTime: req.body.endingTime ?? new Date(new Date().getTime() + (60 * 60 * 24 * 1000))
     }
   }))
   if (attendanceErr) return res.status(409).send("Unable to add attendance");
