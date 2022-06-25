@@ -864,7 +864,7 @@ router.post('/:class/attendance', verifyUser, async (req, res) => {
   if (attendanceErr) return res.status(409).send("Unable to add attendance");
   let [participants, participantsErr] = await safeAwait(prisma.role.findMany({
     where: {
-      classId: 12,
+      classId: parseInt(req.params.class),
     },
     select: {
       name: true,
@@ -941,6 +941,7 @@ router.get('/:class/attendance', verifyUser, async (req, res) => {
       }
     })
   })
+  let presents = 0;
   attendance = attendance.map(a => {
     return isPresent.includes(a.id) ? {...a, isPresent: true} : {...a, isPresent: false}
   });
