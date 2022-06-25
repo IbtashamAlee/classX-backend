@@ -17,7 +17,7 @@ router.get('/', verifyUser, verifySystemAdmin, async (req, res) => {
 })
 
 //get specific institute
-router.get('/:id', verifyUser, verifySystemAdmin, async (req, res) => {
+router.get('/:id', verifyUser, async (req, res) => {
   const institutes = await prisma.institute.findUnique({
     where:{
       id : parseInt(req.params.id)
@@ -25,6 +25,31 @@ router.get('/:id', verifyUser, verifySystemAdmin, async (req, res) => {
   });
   return res.status(200).json(institutes);
 })
+
+//update institute
+router.put('/:id', verifyUser, async (req, res) => {
+  const [institute,instituteErr] = await safeAwait(prisma.institute.findUnique({
+    where:{
+      id : parseInt(req.params.id)
+    }
+  }))
+  if(!institute || instituteErr) return res.status(409).send("unable to fetch institute");
+  const [updatedInstitute,updateErr] = await safeAwait(prisma.institute.update({
+    where:{
+      id: institute.id
+    },
+    data:{
+      address: req.body.address ?? institute.address,
+      city: req.body.city ?? institute.city,
+      country: req.body.country ?? institute.country,
+      description: req.body.description ?? institute.description,
+      imageUrl: req.body.imageUrl ?? institute.imageUrl
+    }
+  }))
+  if(updateErr) return res.status(409).send("unable to update")
+  return res.send(updatedInstitute);
+})
+
 
 //get all institute requests (SYSTEM ADMIN)
 router.get('/requests', verifyUser, verifySystemAdmin, async (req, res) => {
@@ -232,21 +257,6 @@ router.post('/:id/add-admin', verifyUser, async (req, res) => {
     }
   });
   return res.send(userRole);
-})
-
-//add/update institute profile pic
-router.put("/:id/profile-pic", verifyUser, async (req, res) => {
-  if (!req.body.imageUrl) return res.status(409).send("url not provided");
-  const [updatedInstitute] = await safeAwait(prisma.institute.update({
-    where: {
-      id: parseInt(req.params.id)
-    },
-    data: {
-      imageUrl: req.body.imageUrl
-    }
-  }))
-  if (updatedInstitute) return res.send("institute image updated successfully")
-  return res.send("unable to update institute image");
 })
 
 /*This function creates an institute after accepting request

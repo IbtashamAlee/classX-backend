@@ -106,6 +106,7 @@ model Institute {
 model Department {
   id Int @id @default(autoincrement())
   name  String @db.VarChar(255) @unique
+  description String?
   institute Institute @relation(fields: [instituteId], references: [id])
   instituteId Int
   deletedAt DateTime? @db.Timestamptz(6)

@@ -512,19 +512,25 @@ router.put('/:id/restore', verifyUser, async (req, res) => {
   return res.send("class restored successfully");
 })
 
-//add/update class profile pic
-router.put("/:id/profile-pic", verifyUser, async (req, res) => {
-  if (!req.body.imageUrl) return res.status(409).send("url not provided");
+//update class
+router.put("/:id", verifyUser, async (req, res) => {
+  const [Class,ClassErr] = await safeAwait(prisma.class.findUnique({
+    where:{
+      id: parseInt(req.params.id)
+    }
+  }))
+  if(ClassErr) return res.status(409).send("unable to fetch class");
   const [updatedClass] = await safeAwait(prisma.class.update({
     where: {
       id: parseInt(req.params.id)
     },
     data: {
-      imageUrl: req.body.imageUrl
+      imageUrl: req.body.imageUrl ?? Class.imageUrl,
+      description: req.body.description ?? Class.description
     }
   }))
-  if (updatedClass) return res.send("class image updated successfully")
-  return res.send("unable to update class image");
+  if (updatedClass) return res.send(updatedClass)
+  return res.send("unable to update class");
 })
 
 //get user role in class
