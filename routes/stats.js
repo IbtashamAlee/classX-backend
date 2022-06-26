@@ -9,8 +9,6 @@ const prisma = new PrismaClient();
 
 //get numbers of class posts(post, poll, attendance, assessments)
 router.get('/class/:classid/general-stats', verifyUser, async (req, res) => {
-  // const isPermitted = await checkPermission(req.user, '44_' + req.params.classid);
-  // if (!isPermitted) return res.status(403).send("unauthorized");
   let classFeed = {};
   const [classAssessment] = await safeAwait(prisma.classAssessment.aggregate({
     _count: {
@@ -48,11 +46,78 @@ router.get('/class/:classid/general-stats', verifyUser, async (req, res) => {
     }
   }))
 
+
   if (classAssessment) classFeed = ({...classFeed, assessments: classAssessment._count.id});
   if (posts) classFeed = {...classFeed, posts: posts._count.id};
   if (attendance) classFeed = {...classFeed, attendances: attendance._count.id};
   if (poll) classFeed = {...classFeed, polls: poll._count.id};
   return res.send(classFeed)
+})
+
+router.get('/class/:classid/comments-stats',verifyUser, async (req, res)=>{
+  let assessment_comments = 0;
+  let poll_comments = 0;
+  let post_comments = 0;
+
+  const [postComments,postCommentsErr] = await safeAwait(prisma.classPost.findMany({
+    where:{
+      classId : parseInt(req.params.classid)
+    },
+    include:{
+      postComments : true
+    }
+  }))
+  const [pollComments,pollCommentsErr] = await safeAwait(prisma.classPoll.findMany({
+    where:{
+      classId : parseInt(req.params.classid)
+    },
+    include:{
+      pollComments : true
+    }
+  }))
+  const [assessmentComments,assessmentCommentsErr] = await safeAwait(prisma.classAssessment.findMany({
+    where:{
+      classId : parseInt(req.params.classid)
+    },
+    include:{
+      assessmentComments : true
+    }
+  }))
+  if (postComments.length > 0) {
+    postComments.map(post => {
+        if (post.postComments.length > 0) {
+          (post.postComments.map(comment => {
+              post_comments++
+            })
+          )
+        }
+      }
+    )
+  }
+  if (pollComments.length > 0) {
+    pollComments.map(post => {
+        if (post.pollComments.length > 0) {
+          (post.pollComments.map(comment => {
+              poll_comments++
+            })
+          )
+        }
+      }
+    )
+  }
+
+  if (assessmentComments.length > 0) {
+    assessmentComments.map(post => {
+        if (post.asessmentComments.length > 0) {
+          (post.assessmentComments.map(comment => {
+              assessment_comments++
+            })
+          )
+        }
+      }
+    )
+  }
+  return res.send({post_comments,poll_comments,assessment_comments})
 })
 
 //individuals' attendance
