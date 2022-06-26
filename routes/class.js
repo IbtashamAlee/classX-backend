@@ -1002,31 +1002,27 @@ router.get('/attendance/:id', verifyUser, async (req, res) => {
 router.post('/:class/attendance/:id', verifyUser, async (req, res) => {
   const isPermitted = await checkPermission(req.user, '39_' + req.params.class);
   if (!isPermitted) return res.status(403).send("not authorized")
-  const [attendanceRecord] = await safeAwait(prisma.attendanceRecord.findUnique({
-    where: {
-      userId_classAttendanceId: {
-        userId: req.user.id,
-        classAttendanceId: parseInt(req.params.id)
-      }
-    }
-  }))
-  if (!attendanceRecord) return res.status(409).send("unable to match user's record");
-  const [newAttendanceRecord, newAttendanceRecordErr] = await safeAwait(prisma.attendanceRecord.update({
+  const [attendanceRecord,attendanceRecordErr] = await safeAwait(prisma.attendanceRecord.upsert({
     where: {
       userId_classAttendanceId: {
         userId: req.user.id,
         classAttendanceId: parseInt(req.params.id)
       }
     },
-    data: {
-      classAttendanceId: parseInt(req.params.id),
-      userId: req.user.id,
+    create:{
+      classAttendanceId : parseInt(req.params.id),
+      userId : req.user.id,
+      isPresent : true,
+      userSessionId : req.session
+    },
+    update:{
       isPresent: true,
-      userSessionId: req.session
+      userSessionId : req.session
     }
   }))
-  if (newAttendanceRecordErr) return res.status(409).send("unable to mark attendance");
-  return res.send(newAttendanceRecord)
+
+  if (attendanceRecordErr) return res.status(409).send("unable to mark attendance");
+  return res.send(attendanceRecord)
 })
 
 /*
@@ -1498,10 +1494,10 @@ router.post('/:classId/assessment/:id/question/:questionId/response', verifyUser
   if (req.body.options) {
     if (req.body.options.length > 0) {
       for await(option of req.body.options) {
-        const [_] = await safeAwait(prisma.questionResponseOption.create({
+        await safeAwait(prisma.questionResponseOption.create({
           data: {
             responseId: response.id,
-            optionId: option.id
+            optionId: parseInt(option.id)
           }
         }))
       }
@@ -1586,7 +1582,8 @@ router.post("/assessment/:assessmentId/done", verifyUser, async (req, res) => {
   if (checkDoneErr) return res.status(409).send("unable to mark as done");
   const [responses, responsesErr] = await safeAwait(prisma.questionResponse.findMany({
     where: {
-      classAssessmentId: parseInt(req.params.assessmentId)
+      classAssessmentId: parseInt(req.params.assessmentId),
+      userId: req.user.id
     },
     include: {
       question: {
@@ -1625,18 +1622,23 @@ router.get("/assessment/:id/view-details", verifyUser, async (req, res) => {
       id: parseInt(req.params.id)
     },
     include: {
+      assessment: true,
       classAssessmentSubmission: {
         include: {
           user: {
             select: {
-              id: true, name: true, imageUrl: true
+              id: true, name: true, imageUrl: true, email:true
             }
           },
           classAssessment: {
             include: {
               questionResponse: {
                 include: {
-                  questionResponseOption: true,
+                  questionResponseOption: {
+                    include:{
+                      option:true
+                    }
+                  },
                   responseAttachment: true,
                   question: {
                     include: {

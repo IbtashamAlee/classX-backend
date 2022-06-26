@@ -16,16 +16,6 @@ router.get('/', verifyUser, verifySystemAdmin, async (req, res) => {
   return res.status(200).json(institutes);
 })
 
-//get specific institute
-router.get('/:id', verifyUser, async (req, res) => {
-  const institutes = await prisma.institute.findUnique({
-    where:{
-      id : parseInt(req.params.id)
-    }
-  });
-  return res.status(200).json(institutes);
-})
-
 //update institute
 router.put('/:id', verifyUser, async (req, res) => {
   const [institute,instituteErr] = await safeAwait(prisma.institute.findUnique({
@@ -50,11 +40,20 @@ router.put('/:id', verifyUser, async (req, res) => {
   return res.send(updatedInstitute);
 })
 
-
 //get all institute requests (SYSTEM ADMIN)
 router.get('/requests', verifyUser, verifySystemAdmin, async (req, res) => {
   const requests = await prisma.instituteRequest.findMany();
   return res.status(200).json(requests);
+})
+
+//get specific institute
+router.get('/:id', verifyUser, async (req, res) => {
+  const institutes = await prisma.institute.findUnique({
+    where:{
+      id : parseInt(req.params.id)
+    }
+  });
+  return res.status(200).json(institutes);
 })
 
 //request a new isntitute
