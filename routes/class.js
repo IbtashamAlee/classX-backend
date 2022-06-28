@@ -956,7 +956,6 @@ router.get('/:class/attendance', verifyUser, async (req, res) => {
   attendance = attendance.map((a,key) => {
     return isPresent.includes(a.id) ? {...a, isPresent: true,...history[key]} : {...a, isPresent: false,...history[key]}
   });
-  console.log(history)
   if (attendanceErr) return res.status(409).send("unable to fetch attendance");
   return res.send(attendance);
 })
