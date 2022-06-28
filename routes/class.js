@@ -1765,6 +1765,41 @@ router.post('/:classId/assessment/:id/question/:questionId/response', verifyUser
 
 })
 
+//edit a question marks
+router.put('/:classId/assessment/:id/response/:respId/marks', verifyUser, async (req, res) => {
+  if(!req.body.obtainedScore) return res.status(404).send("new marks not provided");
+  const [assessment,assessmentErr] = await safeAwait(prisma.classAssessment.findMany({
+    where :{
+      id : parseInt(req.params.id),
+      classId : parseInt(req.params.classId)
+    }
+  }))
+  if(assessmentErr || assessment.length<1){
+    return res.status(409).send('unable to fetch assessment');
+  }
+  const [questionRes,questionResErr] = await safeAwait(prisma.questionResponse.findUnique({
+    where:{
+      id : parseInt(req.params.respId)
+    },
+    include : {
+      question : true
+    }
+  }))
+  let score  = parseInt(req.body.obtainedScore) ?? questionRes?.question?.questionScore;
+  if(!questionRes || questionResErr) return res.status(409).send("unable to query requested response");
+  const [updatedResponse,updatedReponseErr] =await safeAwait(prisma.questionResponse.update({
+    where:{
+      id : parseInt(req.params.respId)
+    },
+    data:{
+      obtainedScore : score <= questionRes.question.questionScore ? score : questionRes.question.questionScore
+    }
+  }))
+  if(updatedReponseErr) return res.status(409).send("unable to update marks");
+  return res.send(updatedResponse);
+})
+
+
 /*
 * Class Feed
 * */
