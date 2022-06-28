@@ -943,7 +943,6 @@ router.get('/:class/attendance', verifyUser, async (req, res) => {
   let history= [];
   attendance.map(a => {
     const total = a.attendanceRecord.length;
-    console.log(a.attendanceRecord.length)
     let present = 0;
     a.attendanceRecord.map(record => {
       if(record.isPresent) present++;
@@ -1882,15 +1881,20 @@ router.get('/:classid/feed', verifyUser, async (req, res) => {
     })
   }))
   let isPresent = [];
+  let history= [];
   attendance.map(a => {
+    const total = a.attendanceRecord.length;
+    let present = 0;
     a.attendanceRecord.map(record => {
+      if(record.isPresent) present++;
       if (record.userId === req.user.id) {
         isPresent.push(a.id)
       }
     })
+    history.push({total,present});
   })
-  attendance = attendance.map(a => {
-    return isPresent.includes(a.id) ? {...a, isPresent: true} : {...a, isPresent: false}
+  attendance = attendance.map((a,key) => {
+    return isPresent.includes(a.id) ? {...a, isPresent: true,...history[key]} : {...a, isPresent: false,...history[key]}
   });
 
   let [poll] = await safeAwait(prisma.classPoll.findMany({
