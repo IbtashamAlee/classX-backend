@@ -1443,13 +1443,13 @@ router.put('/assessment/:id', verifyUser, async (req, res) => {
 
 //comment on class assessment
 router.post('/assessment/:id/comment', verifyUser, async (req, res) => {
-  const [classAssessment, classAssesssmentErr] = await safeAwait(prisma.classPost.findUnique({
+  const [classAssessment, classAssesssmentErr] = await safeAwait(prisma.classAssessment.findUnique({
     where: {
       id: parseInt(req.params.id)
     }
   }))
-  if (classAssessment.deletedAt !== null) return res.status(404).send("assessment not found");
   if (!classAssessment || classAssesssmentErr) return res.status(409).send("unable to find specified class assessment");
+  if (classAssessment?.deletedAt !== null) return res.status(404).send("assessment not found");
   const isPermitted = await checkPermission(req.user, '34_' + classAssessment.classId);
   if (!isPermitted) return res.status(403).send("not authorized")
   const comment = req.body.comment;

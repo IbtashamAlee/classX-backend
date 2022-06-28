@@ -83,6 +83,7 @@ router.get('/class/:classid/comments-stats',verifyUser, async (req, res)=>{
       assessmentComments : true
     }
   }))
+  // return res.send(assessmentComments)
   if (postComments.length > 0) {
     postComments.map(post => {
         if (post.postComments.length > 0) {
@@ -108,7 +109,7 @@ router.get('/class/:classid/comments-stats',verifyUser, async (req, res)=>{
 
   if (assessmentComments.length > 0) {
     assessmentComments.map(post => {
-        if (post.asessmentComments.length > 0) {
+        if (post.assessmentComments?.length > 0) {
           (post.assessmentComments.map(comment => {
               assessment_comments++
             })
