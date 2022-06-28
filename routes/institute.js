@@ -129,7 +129,6 @@ router.put('/restore/:id', verifyUser, verifySystemAdmin, async (req, res) => {
 
 //add department to institute
 router.post('/:id/add-department', verifyUser, async (req, res) => {
-  console.log(req.body.name, req.params.id)
   const isPermitted = await checkPermission(req.user, '14_' + req.params.id);
   const institute = await prisma.institute.findUnique({
     where: {
@@ -146,13 +145,13 @@ router.post('/:id/add-department', verifyUser, async (req, res) => {
   if (!isPermitted) return res.status(401).send("not permitted to perform this task");
   const departmentAdmin = await prisma.user.findUnique({
     where: {
-      email: req.body.adminId,
+      email: req.user.email,
     }
   })
   if (!departmentAdmin) return res.status(404).send("Proposed Admin user not found");
   const department = await prisma.department.create({
     data: {
-      name: req.body.name + '_' + req.params.id,
+      name: req.body.name,
       instituteId: parseInt(req.params.id),
       adminId: departmentAdmin.id
     },
