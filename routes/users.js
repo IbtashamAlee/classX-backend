@@ -268,15 +268,19 @@ router.put("/profile-pic", verifyUser, async (req, res) => {
 //update user status
 router.put("/status", verifyUser, async (req, res) => {
   if (!req.body.status) return res.status(409).send("user status not provided");
+  if (!req.body.name) return res.status(409).send("user name not provided");
   if (req.body.status.trim().length < 1) return res.send("empty value not allowed")
+  if (req.body.name.trim().length < 1) return res.send("empty value not allowed")
+
   const [updatedUser] = await safeAwait(prisma.user.update({
     where: {
       id: req.user.id
     }, data: {
-      userStatus: req.body.status
+      userStatus: req.body.status,
+      name: req.body.name
     }
   }))
-  if (updatedUser) return res.send("user status updated successfully")
+  if (updatedUser) return res.status(200).send("user status/name updated successfully")
   return res.send("unable to update user status");
 })
 
