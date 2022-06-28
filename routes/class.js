@@ -940,17 +940,24 @@ router.get('/:class/attendance', verifyUser, async (req, res) => {
     })
   }))
   let isPresent = [];
+  let history= [];
   attendance.map(a => {
+    const total = a.attendanceRecord.length;
+    console.log(a.attendanceRecord.length)
+    let present = 0;
     a.attendanceRecord.map(record => {
+      if(record.isPresent) present++;
       if (record.userId === req.user.id) {
         isPresent.push(a.id)
       }
     })
+    history.push({total,present});
   })
-  let presents = 0;
-  attendance = attendance.map(a => {
-    return isPresent.includes(a.id) ? {...a, isPresent: true} : {...a, isPresent: false}
+
+  attendance = attendance.map((a,key) => {
+    return isPresent.includes(a.id) ? {...a, isPresent: true,...history[key]} : {...a, isPresent: false,...history[key]}
   });
+  console.log(history)
   if (attendanceErr) return res.status(409).send("unable to fetch attendance");
   return res.send(attendance);
 })
@@ -989,12 +996,15 @@ router.get('/attendance/:id', verifyUser, async (req, res) => {
   const isPermitted = await checkPermission(req.user, '45_' + attendance.classId);
   if (!isPermitted) return res.status(403).send("not authorized")
   let isPresent = false;
+  let total = attendance?.attendanceRecord?.length ?? 0
+  let presents = 0;
   attendance.attendanceRecord.map(record => {
+    if(record.isPresent) presents ++
     if (record.userId === req.user.id) {
       isPresent = true
     }
   })
-  attendance = {...attendance, isPresent}
+  attendance = {...attendance, isPresent,total,presents}
   return res.send(attendance);
 })
 
@@ -1296,7 +1306,7 @@ router.get('/:classid/assessment', verifyUser, async (req, res) => {
 
 //get specific class assessment
 router.get('/assessment/:id', verifyUser, async (req, res) => {
-  const [classAssessment, classAssessmentErr] = await safeAwait(prisma.classAssessment.findMany({
+  let [classAssessment, classAssessmentErr] = await safeAwait(prisma.classAssessment.findMany({
     where: {
       id: parseInt(req.params.id),
       deletedAt: null
@@ -1318,6 +1328,9 @@ router.get('/assessment/:id', verifyUser, async (req, res) => {
                 }
               },
               option: {
+                select:{
+                  id: true, questionId :true , value:true
+                },
                 where: {
                   deletedAt: null
                 }
@@ -1359,7 +1372,7 @@ router.get('/assessment/:id', verifyUser, async (req, res) => {
   if (toDisplay === null) {
     toDisplay = totalQuestions
   }
-  if (toDisplay < totalQuestions) {
+  if (toDisplay <= totalQuestions) {
     classAssessment[0].assessment.question =
       classAssessment[0].assessment.question
         .sort(() => Math.random() - 0.6)
@@ -1367,6 +1380,18 @@ router.get('/assessment/:id', verifyUser, async (req, res) => {
   }
   const isPermitted = await checkPermission(req.user, '42_' + classAssessment[0].classId);
   if (!isPermitted) return res.status(403).send("unauthorized");
+  const temp = classAssessment[0].assessment.question.map((question)=>{
+      let correct = 0;
+      if(question.option.length>0){
+        question.option.map(opt=>{
+          if (opt.isCorrect){
+            correct++
+          }
+        })
+      }
+      return {...question,correct}
+  })
+  classAssessment[0].assessment.question = temp
   return res.send(classAssessment[0] ?? [])
 })
 
