@@ -35,7 +35,6 @@ router.get('/class/:classid/general-stats', verifyUser, async (req, res) => {
       classId: parseInt(req.params.classid)
     }
   }))
-  console.log(Err)
 
   let [poll] = await safeAwait(prisma.classPoll.aggregate({
     _count: {

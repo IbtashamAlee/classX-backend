@@ -19,7 +19,6 @@ router.get("/public", verifyUser, async (req, res) => {
       id: true, name: true, userStatus: true, imageUrl: true, email: true
     },
   }))
-  console.log(usersErr)
   if (usersErr) return res.status(409).send("unable to fetch users");
   return res.json(users);
 });
@@ -33,7 +32,6 @@ router.get("/public/:id", verifyUser, async (req, res) => {
       id: true, name: true, userStatus: true, imageUrl: true, email: true
     },
   }));
-  console.log(userErr)
   if (userErr) return res.status(409).send("unable to fetch user");
   return res.json(user);
 });
@@ -47,7 +45,6 @@ router.get("/", verifyUser, verifySystemAdmin, async (req, res) => {
 
 //get current user
 router.get("/me", verifyUser, async (req, res) => {
-  console.log(req.user);
   const {id, name, email, userStatus, imageUrl} = req.user;
   return res.status(200).json({id, name, email, userStatus, imageUrl});
 });

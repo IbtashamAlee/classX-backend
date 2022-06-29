@@ -106,7 +106,6 @@ router.post("/:id/fork", verifyUser, async (req, res) => {
   }))
   if (!assessment || assessmentErr) return res.status(409).send("assessment not found");
   // return res.send(assessment);
-  console.log(assessment)
   assessment = assessment[0]
 
   const [forkedAssessment, forkedAssessmentErr] = await safeAwait(prisma.assessment.create({

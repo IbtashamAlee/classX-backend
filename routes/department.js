@@ -31,7 +31,6 @@ router.get('/:id', verifyUser, verifySystemAdmin, async (req, res) => {
 //Add department Admin
 router.post('/:id/add-admin', verifyUser, async (req, res) => {
   const isPermitted = await checkPermission(req.user, '07_' + req.params.id);
-  console.log(req.user, '07_' + req.params.id)
   const department = await prisma.department.findUnique({
     where: {
       id: parseInt(req.params.id)
