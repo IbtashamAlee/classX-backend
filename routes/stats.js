@@ -137,7 +137,7 @@ router.get('/class/:classid/student/:student/attendance-stats', verifyUser, asyn
   // return res.send(stdAttendance)
   let total = 0;
   let present = 0;
-  if (stdAttendance.length > 0) {
+  if (stdAttendance?.length > 0) {
     stdAttendance.map(attendance => {
       total++;
       if (attendance?.attendanceRecord[0]?.isPresent === true) present++
