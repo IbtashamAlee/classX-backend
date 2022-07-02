@@ -137,7 +137,7 @@ router.post('/:id/add-department', verifyUser, async (req, res) => {
   })
   const exisitingDepartment = await prisma.department.findUnique({
     where: {
-      name: req.body.name + '_' + req.params.id,
+      name: req.body.name,
     }
   })
   if (exisitingDepartment) return res.status(409).send("Department already Exists")
