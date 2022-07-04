@@ -1330,7 +1330,7 @@ router.get('/assessment/:id', verifyUser, async (req, res) => {
               },
               option: {
                 select: {
-                  id: true, questionId: true, value: true
+                  id: true, questionId: true, value: true, isCorrect: true
                 },
                 where: {
                   deletedAt: null
@@ -1386,13 +1386,20 @@ router.get('/assessment/:id', verifyUser, async (req, res) => {
     if (question.option.length > 0) {
       question.option.map(opt => {
         if (opt.isCorrect) {
-          correct++
+          ++correct
         }
       })
     }
     return {...question, correct}
   })
   classAssessment[0].assessment.question = temp
+
+  const temp2 = classAssessment[0].assessment?.question?.map(question => {
+    return {...question,option:question?.option?.map(o=>{
+        return {id:o.id,questionId:o.questionId,value:o.value}
+      })}
+  })
+  classAssessment[0].assessment.question = temp2
   return res.send(classAssessment[0] ?? [])
 })
 
