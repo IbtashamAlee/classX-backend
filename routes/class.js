@@ -533,6 +533,26 @@ router.put("/:id", verifyUser, async (req, res) => {
   return res.send("unable to update class");
 })
 
+//update class code
+router.put("/:id/class-code", verifyUser, async (req, res) => {
+  const [Class, ClassErr] = await safeAwait(prisma.class.findUnique({
+    where: {
+      id: parseInt(req.params.id)
+    }
+  }))
+  if (!Class || ClassErr) return res.status(409).send("unable to fetch class");
+  const [updatedClass,Er] = await safeAwait(prisma.class.update({
+    where: {
+      id: parseInt(req.params.id)
+    },
+    data: {
+      code: await nanoid(6)
+    }
+  }))
+  if (updatedClass) return res.send(updatedClass)
+  return res.send("unable to update class");
+})
+
 //get user role in class
 router.get("/:id/role", verifyUser, async (req, res) => {
   const [existingcClass, classErr] = await safeAwait(prisma.class.findUnique({
