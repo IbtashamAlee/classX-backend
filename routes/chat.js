@@ -260,7 +260,7 @@ router.get('/:id', verifyUser, async (req, res) => {
         include: {
           user: {
             select: {
-              id: true
+              id: true, imageUrl: true
             }
           }
         }
