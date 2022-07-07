@@ -1745,11 +1745,19 @@ router.get("/assessment/:id/user/:userId/view-details", verifyUser, async (req, 
                       option: true
                     }
                   },
-                  responseAttachment: true,
+                  responseAttachment: {
+                    include:{
+                      file:true
+                    }
+                  },
                   question: {
                     include: {
                       option: true,
-                      questionAttachment: true
+                      questionAttachment: {
+                        include:{
+                          file: true
+                        }
+                      }
                     }
                   }
                 }
